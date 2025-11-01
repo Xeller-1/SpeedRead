@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/white">
+
+    <!-- Монетки в верхнем левом углу -->
+    <LinearLayout
+        android:id="@+id/coinsLayout"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentStart="true"
+        android:layout_margin="16dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:background="#FFF9C4"
+        android:padding="8dp"
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp">
+        
+        <ImageView
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:src="@drawable/ic_coin"
+            android:layout_marginEnd="8dp" />
+            
+        <TextView
+            android:id="@+id/tvCoins"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="0"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:textColor="#FF8C00" />
+    </LinearLayout>
+
+    <!-- Кнопка Играть немного ниже середины экрана -->
+    <Button
+        android:id="@+id/btnPlay"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerHorizontal="true"
+        android:layout_centerVertical="true"
+        android:layout_marginTop="80dp"
+        android:text="Играть"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        android:paddingStart="32dp"
+        android:paddingEnd="32dp"
+        android:minWidth="200dp"
+        style="@style/Widget.MaterialComponents.Button" />
+
+    <!-- Круг персонажа немного ниже середины экрана, над кнопкой -->
+    <ImageView
+        android:id="@+id/ivCharacter"
+        android:layout_width="200dp"
+        android:layout_height="200dp"
+        android:layout_centerHorizontal="true"
+        android:layout_above="@+id/btnPlay"
+        android:layout_marginBottom="32dp"
+        android:src="@drawable/stickman_face"
+        android:background="@drawable/circle_avatar"
+        android:padding="4dp"
+        android:scaleType="centerInside"
+        android:clipToOutline="true" />
+
+</RelativeLayout>

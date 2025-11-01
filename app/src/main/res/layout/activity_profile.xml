@@ -1,0 +1,333 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@color/white">
+
+    <!-- Верхняя панель с кнопкой назад, монетками и магазином -->
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="16dp">
+
+        <!-- Кнопка назад -->
+        <ImageButton
+            android:id="@+id/btnBack"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_alignParentStart="true"
+            android:src="@drawable/ic_arrow_back"
+            android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Назад"
+            android:padding="8dp" />
+
+        <!-- Кнопка магазина в правом верхнем углу -->
+        <ImageButton
+            android:id="@+id/btnShop"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_alignParentEnd="true"
+            android:src="@drawable/ic_store"
+            android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Магазин"
+            android:padding="8dp" />
+
+    </RelativeLayout>
+
+    <!-- Верхняя часть с персонажем -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:background="@color/white"
+        android:gravity="center"
+        android:paddingTop="24dp"
+        android:paddingBottom="24dp">
+
+        <!-- Персонаж (круг) над серым фоном -->
+        <ImageView
+            android:layout_width="120dp"
+            android:layout_height="120dp"
+            android:layout_gravity="center_horizontal"
+            android:src="@drawable/stickman_face"
+            android:background="@drawable/circle_avatar"
+            android:padding="4dp"
+            android:scaleType="centerInside"
+            android:clipToOutline="true" />
+
+    </LinearLayout>
+
+    <!-- Нижняя часть - статистика (увеличена) -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="2"
+        android:orientation="vertical"
+        android:background="#F5F5F5"
+        android:padding="24dp">
+
+    <!-- Никнейм пользователя в прямоугольнике посередине вверху -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center"
+            android:layout_marginBottom="40dp">
+
+            <TextView
+                android:id="@+id/tvUsername"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Имя пользователя"
+                android:textSize="24sp"
+                android:textStyle="bold"
+                android:textColor="@color/black"
+                android:background="@android:drawable/edit_text"
+                android:padding="16dp"
+                android:paddingStart="24dp"
+                android:paddingEnd="24dp" />
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/etUsernameEdit"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="24sp"
+                android:textStyle="bold"
+                android:inputType="textPersonName"
+                android:background="@android:drawable/edit_text"
+                android:padding="16dp"
+                android:paddingStart="24dp"
+                android:paddingEnd="24dp"
+                android:visibility="gone" />
+
+            <ImageButton
+                android:id="@+id/btnEditUsername"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:src="@drawable/ic_edit"
+                android:background="?android:attr/selectableItemBackgroundBorderless"
+                android:contentDescription="Изменить имя"
+                android:padding="2dp"
+                android:layout_marginStart="8dp" />
+
+            <ImageButton
+                android:id="@+id/btnSaveUsername"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:src="@drawable/ic_check"
+                android:background="?android:attr/selectableItemBackgroundBorderless"
+                android:contentDescription="Сохранить"
+                android:padding="2dp"
+                android:layout_marginStart="8dp"
+                android:visibility="gone" />
+
+            <ImageButton
+                android:id="@+id/btnCancelUsername"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:src="@drawable/ic_close"
+                android:background="?android:attr/selectableItemBackgroundBorderless"
+                android:contentDescription="Отмена"
+                android:padding="2dp"
+                android:layout_marginStart="8dp"
+                android:visibility="gone" />
+
+        </LinearLayout>
+
+        <!-- Лучшие результаты -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Лучшие результаты"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:textColor="@color/black"
+            android:layout_marginTop="16dp"
+            android:layout_marginBottom="24dp" />
+
+        <!-- Статистика слева -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <!-- Скорость -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Скорость"
+                android:textSize="18sp"
+                android:textColor="@color/black"
+                android:layout_marginBottom="16dp" />
+
+            <!-- Четкость -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Четкость"
+                android:textSize="18sp"
+                android:textColor="@color/black"
+                android:layout_marginBottom="16dp" />
+
+            <!-- Понимание -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Понимание"
+                android:textSize="18sp"
+                android:textColor="@color/black"
+                android:layout_marginBottom="32dp" />
+
+        </LinearLayout>
+
+        <!-- Данные пользователя в конце (используем Spacer) -->
+        <Space
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <!-- Заголовок "Данные пользователя" -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Данные пользователя"
+                android:textSize="20sp"
+                android:textStyle="bold"
+                android:textColor="@color/black"
+                android:layout_marginBottom="16dp" />
+
+            <!-- Email с кнопкой редактирования -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="12dp">
+
+                <TextView
+                    android:id="@+id/tvEmail"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="email@example.com"
+                    android:textSize="18sp"
+                    android:textColor="#757575" />
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/etEmailEdit"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:textSize="18sp"
+                    android:inputType="textEmailAddress"
+                    android:visibility="gone" />
+
+                <ImageButton
+                    android:id="@+id/btnEditEmail"
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:src="@drawable/ic_edit"
+                    android:background="?android:attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="Изменить email"
+                    android:padding="2dp" />
+
+                <ImageButton
+                    android:id="@+id/btnSaveEmail"
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:src="@drawable/ic_check"
+                    android:background="?android:attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="Сохранить"
+                    android:padding="2dp"
+                    android:visibility="gone" />
+
+                <ImageButton
+                    android:id="@+id/btnCancelEmail"
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:src="@drawable/ic_close"
+                    android:background="?android:attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="Отмена"
+                    android:padding="2dp"
+                    android:visibility="gone" />
+
+            </LinearLayout>
+
+            <!-- Пароль с кнопкой редактирования -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="24dp">
+
+                <TextView
+                    android:id="@+id/tvPassword"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="••••••••"
+                    android:textSize="18sp"
+                    android:textColor="#757575" />
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/etPasswordEdit"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:textSize="18sp"
+                    android:inputType="textPassword"
+                    android:visibility="gone" />
+
+                <ImageButton
+                    android:id="@+id/btnEditPassword"
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:src="@drawable/ic_edit"
+                    android:background="?android:attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="Изменить пароль"
+                    android:padding="2dp" />
+
+                <ImageButton
+                    android:id="@+id/btnSavePassword"
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:src="@drawable/ic_check"
+                    android:background="?android:attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="Сохранить"
+                    android:padding="2dp"
+                    android:visibility="gone" />
+
+                <ImageButton
+                    android:id="@+id/btnCancelPassword"
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:src="@drawable/ic_close"
+                    android:background="?android:attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="Отмена"
+                    android:padding="2dp"
+                    android:visibility="gone" />
+
+            </LinearLayout>
+
+            <!-- Кнопка выхода -->
+            <Button
+                android:id="@+id/btnLogout"
+                android:layout_width="match_parent"
+                android:layout_height="56dp"
+                android:text="Выход из профиля"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+</LinearLayout>

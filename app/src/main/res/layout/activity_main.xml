@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@color/white">
+
+    <!-- Основной контент -->
+    <FrameLayout
+        android:id="@+id/contentContainer"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1" />
+
+    <!-- Нижняя навигация -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:background="#F5F5F5"
+        android:elevation="8dp"
+        android:padding="8dp"
+        android:gravity="center">
+
+        <!-- Кнопка Забеги -->
+        <Button
+            android:id="@+id/btnRaces"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Забеги"
+            android:textSize="12sp"
+            android:drawableTop="@drawable/ic_gamepad"
+            android:drawablePadding="4dp"
+            android:background="@android:color/transparent"
+            android:textColor="@color/black"
+            style="@style/Widget.MaterialComponents.Button.TextButton" />
+
+        <!-- Кнопка Академия -->
+        <Button
+            android:id="@+id/btnAcademy"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Академия"
+            android:textSize="12sp"
+            android:drawableTop="@drawable/ic_graduation_cap"
+            android:drawablePadding="4dp"
+            android:background="@android:color/transparent"
+            android:textColor="@color/black"
+            style="@style/Widget.MaterialComponents.Button.TextButton" />
+
+        <!-- Кнопка Профиль -->
+        <Button
+            android:id="@+id/btnProfile"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Профиль"
+            android:textSize="12sp"
+            android:drawableTop="@drawable/ic_profile_avatar"
+            android:drawablePadding="4dp"
+            android:background="@android:color/transparent"
+            android:textColor="@color/black"
+            style="@style/Widget.MaterialComponents.Button.TextButton" />
+
+    </LinearLayout>
+
+</LinearLayout>

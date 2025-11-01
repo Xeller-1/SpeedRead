@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    
+    <!-- Крыша магазина -->
+    <path
+        android:fillColor="#424242"
+        android:pathData="M12,3L2,12h3v8h14v-8h3L12,3zM12,7.7L18,13v5H6v-5L12,7.7z" />
+    
+    <!-- Окна -->
+    <path
+        android:fillColor="#FFD700"
+        android:pathData="M9,15h2v2H9V15zM13,15h2v2h-2V15z" />
+    
+    <!-- Дверь -->
+    <path
+        android:fillColor="#424242"
+        android:pathData="M10,18h4v4h-4V18z" />
+    
+</vector>
