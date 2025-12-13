@@ -69,7 +69,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="легкие уровни: 100-200 слов"
+                android:text="легкие уровни: до 150 слов"
                 android:textSize="12sp"
                 android:textColor="#757575"
                 android:layout_alignParentEnd="true"

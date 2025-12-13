@@ -4,10 +4,18 @@ import android.os.Bundle;
 import android.widget.ImageButton;
 import android.widget.Toast;
 
+import android.content.Intent;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.cardview.widget.CardView;
 
 import com.example.speedread2.R;
+import com.example.speedread2.database.AppDatabase;
+import com.example.speedread2.dao.CategoryDao;
+import com.example.speedread2.dao.TextDao;
+import com.example.speedread2.database.entities.Category;
+import com.example.speedread2.database.entities.Text;
+
+import java.util.List;
 
 /**
  * Activity для отображения списка басен
@@ -15,6 +23,11 @@ import com.example.speedread2.R;
  * Позволяет выбрать басню для чтения
  */
 public class FablesActivity extends AppCompatActivity {
+
+    private AppDatabase database;
+    private TextDao textDao;
+    private CategoryDao categoryDao;
+    private List<Text> fables;
 
     /**
      * Вызывается при создании Activity
@@ -25,6 +38,11 @@ public class FablesActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_fables);
 
+        // Инициализация базы данных
+        database = AppDatabase.getInstance(this);
+        textDao = database.textDao();
+        categoryDao = database.categoryDao();
+
         // Инициализация элементов интерфейса
         ImageButton btnBack = findViewById(R.id.btnBack);
         CardView cardFable1 = findViewById(R.id.cardFable1);
@@ -33,16 +51,37 @@ public class FablesActivity extends AppCompatActivity {
         // Обработчик кнопки "Назад" - возвращает на предыдущий экран
         btnBack.setOnClickListener(v -> finish());
 
-        // Обработчик клика на карточку басни 1
-        cardFable1.setOnClickListener(v -> {
-            Toast.makeText(this, "Басня 1", Toast.LENGTH_SHORT).show();
-            // TODO: Здесь будет открытие чтения басни
-        });
+        // Загружаем басни из БД
+        loadFables();
 
-        // Обработчик клика на карточку басни 2
-        cardFable2.setOnClickListener(v -> {
-            Toast.makeText(this, "Басня 2", Toast.LENGTH_SHORT).show();
-            // TODO: Здесь будет открытие чтения басни
-        });
+        // Настраиваем обработчики кликов на карточки
+        if (fables != null && !fables.isEmpty()) {
+            if (fables.size() > 0 && cardFable1 != null) {
+                Text fable1 = fables.get(0);
+                cardFable1.setOnClickListener(v -> {
+                    Intent intent = new Intent(this, ReadingActivity.class);
+                    intent.putExtra("textId", fable1.id);
+                    startActivity(intent);
+                });
+            }
+            if (fables.size() > 1 && cardFable2 != null) {
+                Text fable2 = fables.get(1);
+                cardFable2.setOnClickListener(v -> {
+                    Intent intent = new Intent(this, ReadingActivity.class);
+                    intent.putExtra("textId", fable2.id);
+                    startActivity(intent);
+                });
+            }
+        }
+    }
+
+    /**
+     * Загружает басни из базы данных
+     */
+    private void loadFables() {
+        Category fablesCategory = categoryDao.getCategoryByName("Басни");
+        if (fablesCategory != null) {
+            fables = textDao.getTextsByCategory(fablesCategory.id);
+        }
     }
 }

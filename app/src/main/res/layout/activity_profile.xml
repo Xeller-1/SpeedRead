@@ -1,7 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:fillViewport="true"
+    android:background="@color/white">
+
+<LinearLayout
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
     android:orientation="vertical"
     android:background="@color/white">
 
@@ -38,13 +44,13 @@
     <!-- Верхняя часть с персонажем -->
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
+        android:layout_height="wrap_content"
         android:orientation="vertical"
         android:background="@color/white"
         android:gravity="center"
-        android:paddingTop="24dp"
-        android:paddingBottom="24dp">
+        android:paddingTop="16dp"
+        android:paddingBottom="16dp"
+        android:minHeight="150dp">
 
         <!-- Персонаж (круг) над серым фоном -->
         <ImageView
@@ -59,14 +65,13 @@
 
     </LinearLayout>
 
-    <!-- Нижняя часть - статистика (увеличена) -->
+    <!-- Нижняя часть - статистика -->
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="2"
+        android:layout_height="wrap_content"
         android:orientation="vertical"
         android:background="#F5F5F5"
-        android:padding="24dp">
+        android:padding="16dp">
 
     <!-- Никнейм пользователя в прямоугольнике посередине вверху -->
         <LinearLayout
@@ -74,7 +79,7 @@
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:gravity="center"
-            android:layout_marginBottom="40dp">
+            android:layout_marginBottom="24dp">
 
             <TextView
                 android:id="@+id/tvUsername"
@@ -141,11 +146,11 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Лучшие результаты"
-            android:textSize="20sp"
+            android:textSize="18sp"
             android:textStyle="bold"
             android:textColor="@color/black"
-            android:layout_marginTop="16dp"
-            android:layout_marginBottom="24dp" />
+            android:layout_marginTop="8dp"
+            android:layout_marginBottom="16dp" />
 
         <!-- Статистика слева -->
         <LinearLayout
@@ -158,36 +163,31 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Скорость"
-                android:textSize="18sp"
+                android:textSize="16sp"
                 android:textColor="@color/black"
-                android:layout_marginBottom="16dp" />
+                android:layout_marginBottom="12dp" />
 
             <!-- Четкость -->
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Четкость"
-                android:textSize="18sp"
+                android:textSize="16sp"
                 android:textColor="@color/black"
-                android:layout_marginBottom="16dp" />
+                android:layout_marginBottom="12dp" />
 
             <!-- Понимание -->
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Понимание"
-                android:textSize="18sp"
+                android:textSize="16sp"
                 android:textColor="@color/black"
-                android:layout_marginBottom="32dp" />
+                android:layout_marginBottom="20dp" />
 
         </LinearLayout>
 
-        <!-- Данные пользователя в конце (используем Spacer) -->
-        <Space
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1" />
-
+        <!-- Данные пользователя -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -198,10 +198,11 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Данные пользователя"
-                android:textSize="20sp"
+                android:textSize="18sp"
                 android:textStyle="bold"
                 android:textColor="@color/black"
-                android:layout_marginBottom="16dp" />
+                android:layout_marginTop="16dp"
+                android:layout_marginBottom="12dp" />
 
             <!-- Email с кнопкой редактирования -->
             <LinearLayout
@@ -217,8 +218,10 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:text="email@example.com"
-                    android:textSize="18sp"
-                    android:textColor="#757575" />
+                    android:textSize="16sp"
+                    android:textColor="#757575"
+                    android:maxLines="2"
+                    android:ellipsize="end" />
 
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/etEmailEdit"
@@ -274,7 +277,7 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:text="••••••••"
-                    android:textSize="18sp"
+                    android:textSize="16sp"
                     android:textColor="#757575" />
 
                 <com.google.android.material.textfield.TextInputEditText
@@ -331,3 +334,5 @@
     </LinearLayout>
 
 </LinearLayout>
+
+</ScrollView>

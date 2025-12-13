@@ -14,6 +14,9 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.cardview.widget.CardView;
 
 import com.example.speedread2.R;
+import com.example.speedread2.database.AppDatabase;
+import com.example.speedread2.dao.UserDao;
+import com.example.speedread2.database.entities.User;
 
 /**
  * Главная Activity приложения
@@ -22,10 +25,6 @@ import com.example.speedread2.R;
  */
 public class MainActivity extends AppCompatActivity {
 
-    // Константы для работы с SharedPreferences
-    private static final String PREFS_NAME = "UserPrefs";
-    private static final String KEY_COINS = "coins";
-    
     // Кнопки нижней навигации
     private Button btnRaces, btnAcademy, btnProfile;
     // Контейнер для динамической загрузки контента
@@ -34,6 +33,11 @@ public class MainActivity extends AppCompatActivity {
     private View racesContent;
     // Представление выбора категорий (стихи/рассказы)
     private View categorySelectionContent;
+    
+    // База данных
+    private AppDatabase database;
+    private UserDao userDao;
+    private int currentUserId;
 
     /**
      * Вызывается при создании Activity
@@ -43,6 +47,20 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        // Инициализация базы данных
+        database = AppDatabase.getInstance(this);
+        userDao = database.userDao();
+        
+        // Получаем ID текущего пользователя
+        android.content.SharedPreferences prefs = getSharedPreferences("UserPrefs", MODE_PRIVATE);
+        currentUserId = prefs.getInt("currentUserId", -1);
+        
+        // Если ID не найден, пытаемся получить из Intent
+        if (currentUserId == -1 && getIntent().hasExtra("userId")) {
+            currentUserId = getIntent().getIntExtra("userId", -1);
+            prefs.edit().putInt("currentUserId", currentUserId).apply();
+        }
 
         // Инициализация элементов интерфейса
         btnRaces = findViewById(R.id.btnRaces);
@@ -93,10 +111,17 @@ public class MainActivity extends AppCompatActivity {
         Button btnPlay = racesContent.findViewById(R.id.btnPlay);
         TextView tvCoins = racesContent.findViewById(R.id.tvCoins);
         
-        // Загружаем количество монет из SharedPreferences и отображаем
-        SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
-        int coins = prefs.getInt(KEY_COINS, 0);
-        tvCoins.setText(String.valueOf(coins));
+        // Загружаем количество монет из БД и отображаем
+        if (currentUserId != -1) {
+            User user = userDao.getUserById(currentUserId);
+            if (user != null) {
+                tvCoins.setText(String.valueOf(user.coins));
+            } else {
+                tvCoins.setText("0");
+            }
+        } else {
+            tvCoins.setText("0");
+        }
 
         // Обработчик клика на кнопку "Играть" - показывает выбор категорий
         btnPlay.setOnClickListener(v -> showCategorySelection());
@@ -153,10 +178,11 @@ public class MainActivity extends AppCompatActivity {
         // Обновляем монетки если на экране забегов
         if (racesContent != null && racesContent.getParent() != null) {
             TextView tvCoins = racesContent.findViewById(R.id.tvCoins);
-            if (tvCoins != null) {
-                SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
-                int coins = prefs.getInt(KEY_COINS, 0);
-                tvCoins.setText(String.valueOf(coins));
+            if (tvCoins != null && currentUserId != -1) {
+                User user = userDao.getUserById(currentUserId);
+                if (user != null) {
+                    tvCoins.setText(String.valueOf(user.coins));
+                }
             }
         }
     }

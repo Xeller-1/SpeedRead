@@ -7,10 +7,18 @@ import android.widget.*;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.speedread2.R;
+import com.example.speedread2.database.AppDatabase;
+import com.example.speedread2.dao.UserDao;
+import com.example.speedread2.dao.UserStatsDao;
+import com.example.speedread2.database.entities.User;
+import com.example.speedread2.database.entities.UserStats;
 import com.google.android.material.textfield.TextInputEditText;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 
 /**
  * Activity для регистрации нового пользователя
@@ -19,19 +27,16 @@ import java.util.List;
  */
 public class RegistrationActivity extends AppCompatActivity {
 
-    // Константы для работы с SharedPreferences
-    private static final String PREFS_NAME = "UserPrefs";
-    private static final String KEY_EMAIL = "email";
-    private static final String KEY_PASSWORD = "password";
-    private static final String KEY_AGE = "age";
-    private static final String KEY_USERNAME = "username";
-    private static final String KEY_IS_LOGGED_IN = "isLoggedIn";
-
     // Элементы интерфейса
     private TextInputEditText etEmail, etPassword, etUsername;
     private Spinner spinnerAge;
     private Button btnRegister;
     private TextView btnBackToLogin;
+    
+    // База данных
+    private AppDatabase database;
+    private UserDao userDao;
+    private UserStatsDao userStatsDao;
 
     /**
      * Вызывается при создании Activity
@@ -41,6 +46,11 @@ public class RegistrationActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_registration);
+
+        // Инициализация базы данных
+        database = AppDatabase.getInstance(this);
+        userDao = database.userDao();
+        userStatsDao = database.userStatsDao();
 
         // Инициализация элементов интерфейса
         etEmail = findViewById(R.id.etEmail);
@@ -91,23 +101,40 @@ public class RegistrationActivity extends AppCompatActivity {
                 return;
             }
             
-            // Сохранение данных пользователя в SharedPreferences
-            SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+            // Проверяем, не существует ли уже пользователь с таким email
+            User existingUser = userDao.getUserByEmail(email);
+            if (existingUser != null) {
+                Toast.makeText(this, "Пользователь с таким email уже существует", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            
+            // Создаем нового пользователя
+            String currentTime = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(new Date());
+            User newUser = new User(username, email, password, currentTime);
+            newUser.coins = 100; // Начальные монеты
+            newUser.level = 1;
+            newUser.experience = 0;
+            
+            // Сохраняем пользователя в БД
+            long userId = userDao.insertUser(newUser);
+            
+            // Создаем статистику для пользователя
+            UserStats userStats = new UserStats((int) userId);
+            userStats.lastUpdated = currentTime;
+            userStatsDao.insertUserStats(userStats);
+            
+            // Сохраняем ID пользователя в SharedPreferences для быстрого доступа
+            SharedPreferences prefs = getSharedPreferences("UserPrefs", MODE_PRIVATE);
             prefs.edit()
-                .putString(KEY_USERNAME, username)
-                .putString(KEY_EMAIL, email)
-                .putString(KEY_PASSWORD, password)
-                .putInt(KEY_AGE, age)
-                .putBoolean(KEY_IS_LOGGED_IN, true) // Автоматически входим после регистрации
+                .putInt("currentUserId", (int) userId)
+                .putBoolean("isLoggedIn", true)
                 .apply();
             
             Toast.makeText(this, "Регистрация успешна!", Toast.LENGTH_SHORT).show();
             
             // Переход на главный экран приложения
             Intent intent = new Intent(this, MainActivity.class);
-            intent.putExtra("email", email);
-            intent.putExtra("username", username);
-            intent.putExtra("age", age);
+            intent.putExtra("userId", (int) userId);
             startActivity(intent);
             finish();
         });

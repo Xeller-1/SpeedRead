@@ -59,12 +59,22 @@
                 android:orientation="vertical">
 
                 <TextView
+                    android:id="@+id/textTitle1"
+                    android:textStyle="bold"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Стихотворение 1"
+                    android:text="Загрузка..."
                     android:textSize="18sp"
-                    android:textStyle="bold"
                     android:textColor="@color/black" />
+
+                <TextView
+                    android:id="@+id/textAuthor1"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text=""
+                    android:textSize="14sp"
+                    android:layout_gravity="end"
+                    android:textColor="#666" />
 
             </LinearLayout>
 
@@ -98,12 +108,22 @@
                 android:orientation="vertical">
 
                 <TextView
+                    android:id="@+id/textTitle2"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Стихотворение 2"
                     android:textSize="18sp"
                     android:textStyle="bold"
                     android:textColor="@color/black" />
+                
+                <TextView
+                    android:id="@+id/textAuthor2"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text=""
+                    android:textSize="14sp"
+                    android:layout_gravity="end"
+                    android:textColor="#666" />
 
             </LinearLayout>
 
@@ -136,12 +156,22 @@
                 android:orientation="vertical">
 
                 <TextView
+                    android:id="@+id/textTitle3"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Стихотворение 3"
                     android:textSize="18sp"
                     android:textStyle="bold"
                     android:textColor="@color/black" />
+                
+                <TextView
+                    android:id="@+id/textAuthor3"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text=""
+                    android:textSize="14sp"
+                    android:layout_gravity="end"
+                    android:textColor="#666" />
 
             </LinearLayout>
 

@@ -10,6 +10,9 @@ import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.speedread2.R;
+import com.example.speedread2.database.AppDatabase;
+import com.example.speedread2.dao.UserDao;
+import com.example.speedread2.database.entities.User;
 import com.google.android.material.textfield.TextInputEditText;
 
 /**
@@ -19,16 +22,14 @@ import com.google.android.material.textfield.TextInputEditText;
  */
 public class LoginActivity extends AppCompatActivity {
 
-    // Константы для работы с SharedPreferences
-    private static final String PREFS_NAME = "UserPrefs";
-    private static final String KEY_EMAIL = "email";
-    private static final String KEY_PASSWORD = "password";
-    private static final String KEY_IS_LOGGED_IN = "isLoggedIn";
-
     // Элементы интерфейса
     private TextInputEditText etEmail, etPassword;
     private Button btnLogin;
     private TextView btnRegister;
+    
+    // База данных
+    private AppDatabase database;
+    private UserDao userDao;
 
     /**
      * Вызывается при создании Activity
@@ -38,6 +39,10 @@ public class LoginActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_login);
+
+        // Инициализация базы данных
+        database = AppDatabase.getInstance(this);
+        userDao = database.userDao();
 
         // Инициализация элементов интерфейса
         etEmail = findViewById(R.id.etEmail);
@@ -69,19 +74,20 @@ public class LoginActivity extends AppCompatActivity {
                 return;
             }
             
-            // Проверка данных пользователя в SharedPreferences
-            SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
-            String savedEmail = prefs.getString(KEY_EMAIL, "");
-            String savedPassword = prefs.getString(KEY_PASSWORD, "");
+            // Проверка данных пользователя в БД
+            User user = userDao.loginUser(email, password);
             
-            // Сравнение введенных данных с сохраненными
-            if (email.equals(savedEmail) && password.equals(savedPassword)) {
-                // Сохраняем состояние входа для запоминания пользователя
-                prefs.edit().putBoolean(KEY_IS_LOGGED_IN, true).apply();
+            if (user != null) {
+                // Сохраняем ID пользователя и состояние входа
+                SharedPreferences prefs = getSharedPreferences("UserPrefs", MODE_PRIVATE);
+                prefs.edit()
+                    .putInt("currentUserId", user.id)
+                    .putBoolean("isLoggedIn", true)
+                    .apply();
                 
                 // Переход на главный экран приложения
                 Intent intent = new Intent(this, MainActivity.class);
-                intent.putExtra("email", email);
+                intent.putExtra("userId", user.id);
                 startActivity(intent);
                 finish();
             } else {

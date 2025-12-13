@@ -4,10 +4,18 @@ import android.os.Bundle;
 import android.widget.ImageButton;
 import android.widget.Toast;
 
+import android.content.Intent;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.cardview.widget.CardView;
 
 import com.example.speedread2.R;
+import com.example.speedread2.database.AppDatabase;
+import com.example.speedread2.dao.CategoryDao;
+import com.example.speedread2.dao.TextDao;
+import com.example.speedread2.database.entities.Category;
+import com.example.speedread2.database.entities.Text;
+
+import java.util.List;
 
 /**
  * Activity для отображения списка рассказов
@@ -15,6 +23,11 @@ import com.example.speedread2.R;
  * Позволяет выбрать рассказ для чтения
  */
 public class StoriesActivity extends AppCompatActivity {
+
+    private AppDatabase database;
+    private TextDao textDao;
+    private CategoryDao categoryDao;
+    private List<Text> stories;
 
     /**
      * Вызывается при создании Activity
@@ -25,6 +38,11 @@ public class StoriesActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_stories);
 
+        // Инициализация базы данных
+        database = AppDatabase.getInstance(this);
+        textDao = database.textDao();
+        categoryDao = database.categoryDao();
+
         // Инициализация элементов интерфейса
         ImageButton btnBack = findViewById(R.id.btnBack);
         CardView cardStory1 = findViewById(R.id.cardStory1);
@@ -32,10 +50,27 @@ public class StoriesActivity extends AppCompatActivity {
         // Обработчик кнопки "Назад" - возвращает на предыдущий экран
         btnBack.setOnClickListener(v -> finish());
 
-        // Обработчик клика на карточку рассказа
-        cardStory1.setOnClickListener(v -> {
-            Toast.makeText(this, "Рассказ 1", Toast.LENGTH_SHORT).show();
-            // TODO: Здесь будет открытие чтения рассказа
-        });
+        // Загружаем рассказы из БД
+        loadStories();
+
+        // Настраиваем обработчик клика на карточку
+        if (stories != null && !stories.isEmpty() && cardStory1 != null) {
+            Text story1 = stories.get(0);
+            cardStory1.setOnClickListener(v -> {
+                Intent intent = new Intent(this, ReadingActivity.class);
+                intent.putExtra("textId", story1.id);
+                startActivity(intent);
+            });
+        }
+    }
+
+    /**
+     * Загружает рассказы из базы данных
+     */
+    private void loadStories() {
+        Category storiesCategory = categoryDao.getCategoryByName("Рассказы");
+        if (storiesCategory != null) {
+            stories = textDao.getTextsByCategory(storiesCategory.id);
+        }
     }
 }

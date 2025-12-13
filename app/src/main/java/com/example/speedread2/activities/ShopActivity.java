@@ -8,6 +8,13 @@ import android.widget.TextView;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.speedread2.R;
+import com.example.speedread2.database.AppDatabase;
+import com.example.speedread2.dao.ShopItemDao;
+import com.example.speedread2.dao.UserDao;
+import com.example.speedread2.database.entities.ShopItem;
+import com.example.speedread2.database.entities.User;
+
+import java.util.List;
 
 /**
  * Activity для магазина
@@ -16,18 +23,21 @@ import com.example.speedread2.R;
  */
 public class ShopActivity extends AppCompatActivity {
 
-    // Константы для работы с SharedPreferences
-    private static final String PREFS_NAME = "UserPrefs";
-    private static final String KEY_COINS = "coins";
-
     // Элементы интерфейса
     private ImageButton btnBack;
     private TextView tvCoins;
-    private TextView tvCategoryClothing, tvCategoryPet, tvCategoryBackground;
+    private TextView tvCategoryBackground;
     private TextView tvItem1, tvItem2, tvItem3, tvItem4;
     
+    // База данных
+    private AppDatabase database;
+    private ShopItemDao shopItemDao;
+    private UserDao userDao;
+    private int currentUserId;
+    
     // Текущая выбранная категория
-    private String currentCategory = "Одежда";
+    private String currentCategory = "Фон";
+    private List<ShopItem> currentItems;
 
     /**
      * Вызывается при создании Activity
@@ -38,11 +48,18 @@ public class ShopActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_shop);
 
+        // Инициализация базы данных
+        database = AppDatabase.getInstance(this);
+        shopItemDao = database.shopItemDao();
+        userDao = database.userDao();
+        
+        // Получаем ID текущего пользователя
+        android.content.SharedPreferences prefs = getSharedPreferences("UserPrefs", MODE_PRIVATE);
+        currentUserId = prefs.getInt("currentUserId", -1);
+
         // Инициализация элементов интерфейса
         btnBack = findViewById(R.id.btnBack);
         tvCoins = findViewById(R.id.tvCoins);
-        tvCategoryClothing = findViewById(R.id.tvCategoryClothing);
-        tvCategoryPet = findViewById(R.id.tvCategoryPet);
         tvCategoryBackground = findViewById(R.id.tvCategoryBackground);
         tvItem1 = findViewById(R.id.tvItem1);
         tvItem2 = findViewById(R.id.tvItem2);
@@ -56,61 +73,128 @@ public class ShopActivity extends AppCompatActivity {
         btnBack.setOnClickListener(v -> finish());
         
         // Обработчики переключения категорий
-        tvCategoryClothing.setOnClickListener(v -> switchCategory("Одежда"));
-        tvCategoryPet.setOnClickListener(v -> switchCategory("Питомец"));
         tvCategoryBackground.setOnClickListener(v -> switchCategory("Фон"));
         
         // Устанавливаем начальную категорию
-        switchCategory("Одежда");
+        switchCategory("Фон");
+        
+        // Обработчики покупки товаров
+        setupItemClickListeners();
     }
 
     /**
-     * Загружает количество монет из SharedPreferences и отображает их
+     * Загружает количество монет из БД и отображает их
      */
     private void loadUserData() {
-        SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
-        int coins = prefs.getInt(KEY_COINS, 0);
-        tvCoins.setText(String.valueOf(coins));
+        if (currentUserId != -1) {
+            User user = userDao.getUserById(currentUserId);
+            if (user != null) {
+                tvCoins.setText(String.valueOf(user.coins));
+            } else {
+                tvCoins.setText("0");
+            }
+        } else {
+            tvCoins.setText("0");
+        }
+    }
+    
+    /**
+     * Настраивает обработчики кликов на товары
+     */
+    private void setupItemClickListeners() {
+        tvItem1.setOnClickListener(v -> purchaseItem(0));
+        tvItem2.setOnClickListener(v -> purchaseItem(1));
+        tvItem3.setOnClickListener(v -> purchaseItem(2));
+        tvItem4.setOnClickListener(v -> purchaseItem(3));
+    }
+    
+    /**
+     * Обрабатывает покупку товара
+     */
+    private void purchaseItem(int index) {
+        if (currentItems == null || index >= currentItems.size()) {
+            return;
+        }
+        
+        ShopItem item = currentItems.get(index);
+        User user = userDao.getUserById(currentUserId);
+        
+        if (user == null) {
+            android.widget.Toast.makeText(this, "Ошибка: пользователь не найден", android.widget.Toast.LENGTH_SHORT).show();
+            return;
+        }
+        
+        // Проверяем, не куплен ли уже товар
+        if (item.isPurchased == 1) {
+            android.widget.Toast.makeText(this, "Товар уже куплен", android.widget.Toast.LENGTH_SHORT).show();
+            return;
+        }
+        
+        // Проверяем, достаточно ли монет
+        if (user.coins < item.price) {
+            android.widget.Toast.makeText(this, "Недостаточно монет", android.widget.Toast.LENGTH_SHORT).show();
+            return;
+        }
+        
+        // Покупаем товар
+        user.coins -= item.price;
+        userDao.updateCoins(currentUserId, user.coins);
+        
+        item.isPurchased = 1;
+        shopItemDao.updateShopItem(item);
+        
+        // Обновляем отображение
+        loadUserData();
+        switchCategory(currentCategory);
+        
+        android.widget.Toast.makeText(this, "Товар куплен!", android.widget.Toast.LENGTH_SHORT).show();
     }
 
     /**
      * Переключает категорию товаров и обновляет отображение
-     * @param category - название категории: "Одежда", "Питомец" или "Фон"
+     * @param category - название категории: "Питомец" или "Фон"
      */
     private void switchCategory(String category) {
         currentCategory = category;
         
         // Сбрасываем стиль всех категорий
-        tvCategoryClothing.setTextColor(getResources().getColor(R.color.black, null));
-        tvCategoryPet.setTextColor(0xFF757575);
         tvCategoryBackground.setTextColor(0xFF757575);
         
         // Выделяем выбранную категорию синим цветом
         switch (category) {
-            case "Одежда":
-                tvCategoryClothing.setTextColor(getResources().getColor(R.color.primary_blue, null));
-                // Обновляем названия товаров
-                tvItem1.setText("Одежда 1");
-                tvItem2.setText("Одежда 2");
-                tvItem3.setText("Одежда 3");
-                tvItem4.setText("Одежда 4");
-                break;
-            case "Питомец":
-                tvCategoryPet.setTextColor(getResources().getColor(R.color.primary_blue, null));
-                // Обновляем названия товаров
-                tvItem1.setText("Питомец 1");
-                tvItem2.setText("Питомец 2");
-                tvItem3.setText("Питомец 3");
-                tvItem4.setText("Питомец 4");
-                break;
             case "Фон":
                 tvCategoryBackground.setTextColor(getResources().getColor(R.color.primary_blue, null));
+                // Загружаем товары из БД
+                currentItems = shopItemDao.getShopItemsByType("background");
                 // Обновляем названия товаров
-                tvItem1.setText("Фон 1");
-                tvItem2.setText("Фон 2");
-                tvItem3.setText("Фон 3");
-                tvItem4.setText("Фон 4");
+                updateItemDisplay();
                 break;
+        }
+    }
+    
+    /**
+     * Обновляет отображение товаров
+     */
+    private void updateItemDisplay() {
+        if (currentItems == null) {
+            return;
+        }
+        
+        TextView[] itemViews = {tvItem1, tvItem2, tvItem3, tvItem4};
+        
+        for (int i = 0; i < itemViews.length; i++) {
+            if (i < currentItems.size()) {
+                ShopItem item = currentItems.get(i);
+                String displayText = item.name;
+                if (item.isPurchased == 1) {
+                    displayText += " (Куплено)";
+                } else {
+                    displayText += " (" + item.price + " монет)";
+                }
+                itemViews[i].setText(displayText);
+            } else {
+                itemViews[i].setText("");
+            }
         }
     }
 
@@ -123,5 +207,7 @@ public class ShopActivity extends AppCompatActivity {
         super.onResume();
         // Обновляем монетки при возврате на экран
         loadUserData();
+        // Обновляем отображение товаров
+        switchCategory(currentCategory);
     }
 }

@@ -5,10 +5,13 @@ import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.util.Log;
 
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.speedread2.R;
+import com.example.speedread2.database.AppDatabase;
+import com.example.speedread2.database.DatabaseInitializer;
 
 /**
  * Splash Screen Activity - начальный экран приложения
@@ -19,10 +22,6 @@ public class SplashActivity extends AppCompatActivity {
 
     // Длительность показа splash screen (6 секунд)
     private static final int SPLASH_DURATION = 6000;
-    // Имя файла SharedPreferences для хранения данных пользователя
-    private static final String PREFS_NAME = "UserPrefs";
-    // Ключ для сохранения статуса входа пользователя
-    private static final String KEY_IS_LOGGED_IN = "isLoggedIn";
 
     /**
      * Вызывается при создании Activity
@@ -33,12 +32,25 @@ public class SplashActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_splash);
 
+        // Инициализируем базу данных синхронно с обработкой ошибок
+        try {
+            Log.d("SplashActivity", "Инициализация БД...");
+            AppDatabase.getInstance(this);
+            Log.d("SplashActivity", "БД создана, инициализация данных...");
+            DatabaseInitializer.initializeDatabase(this);
+            Log.d("SplashActivity", "Инициализация завершена");
+        } catch (Exception e) {
+            Log.e("SplashActivity", "Ошибка инициализации БД", e);
+            e.printStackTrace();
+            // В случае ошибки продолжаем работу
+        }
+
         // Запускаем таймер на 6 секунд для показа splash screen
         new Handler(Looper.getMainLooper()).postDelayed(() -> {
             // Получаем доступ к сохраненным данным
-            SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+            SharedPreferences prefs = getSharedPreferences("UserPrefs", MODE_PRIVATE);
             // Проверяем, был ли пользователь ранее авторизован
-            boolean isLoggedIn = prefs.getBoolean(KEY_IS_LOGGED_IN, false);
+            boolean isLoggedIn = prefs.getBoolean("isLoggedIn", false);
 
             Intent intent;
             if (isLoggedIn) {

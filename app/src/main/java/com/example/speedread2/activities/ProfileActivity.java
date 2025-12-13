@@ -14,16 +14,12 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.speedread2.R;
+import com.example.speedread2.database.AppDatabase;
+import com.example.speedread2.dao.UserDao;
+import com.example.speedread2.database.entities.User;
 import com.google.android.material.textfield.TextInputEditText;
 
 public class ProfileActivity extends AppCompatActivity {
-
-    private static final String PREFS_NAME = "UserPrefs";
-    private static final String KEY_USERNAME = "username";
-    private static final String KEY_EMAIL = "email";
-    private static final String KEY_PASSWORD = "password";
-    private static final String KEY_COINS = "coins";
-    private static final String KEY_IS_LOGGED_IN = "isLoggedIn";
 
     private TextView tvUsername, tvEmail, tvPassword;
     private TextInputEditText etEmailEdit, etPasswordEdit, etUsernameEdit;
@@ -33,11 +29,25 @@ public class ProfileActivity extends AppCompatActivity {
     private ImageButton btnEditUsername, btnSaveUsername, btnCancelUsername;
     private Button btnLogout;
     private String originalEmail, originalPassword, originalUsername;
+    
+    // База данных
+    private AppDatabase database;
+    private UserDao userDao;
+    private int currentUserId;
+    private User currentUser;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_profile);
+        
+        // Инициализация базы данных
+        database = AppDatabase.getInstance(this);
+        userDao = database.userDao();
+        
+        // Получаем ID текущего пользователя
+        android.content.SharedPreferences prefs = getSharedPreferences("UserPrefs", MODE_PRIVATE);
+        currentUserId = prefs.getInt("currentUserId", -1);
 
         // Инициализация текстовых полей для отображения данных
         tvUsername = findViewById(R.id.tvUsername);
@@ -83,6 +93,9 @@ public class ProfileActivity extends AppCompatActivity {
 
         // Обработчик кнопки выхода - показывает диалог подтверждения
         btnLogout.setOnClickListener(v -> showLogoutDialog());
+        
+        // Загружаем данные пользователя
+        loadUserData();
 
         // Обработчики редактирования email
         btnEditEmail.setOnClickListener(v -> startEditingEmail());
@@ -121,9 +134,12 @@ public class ProfileActivity extends AppCompatActivity {
      * - Очищает стек активности
      */
     private void logout() {
-        SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
-        // Очищаем флаг входа, чтобы при следующем запуске показать экран входа
-        prefs.edit().putBoolean(KEY_IS_LOGGED_IN, false).apply();
+        android.content.SharedPreferences prefs = getSharedPreferences("UserPrefs", MODE_PRIVATE);
+        // Очищаем флаг входа и ID пользователя
+        prefs.edit()
+            .putBoolean("isLoggedIn", false)
+            .remove("currentUserId")
+            .apply();
         
         // Переход на экран входа с очисткой стека активности
         Intent intent = new Intent(this, LoginActivity.class);
@@ -133,33 +149,32 @@ public class ProfileActivity extends AppCompatActivity {
     }
 
     /**
-     * Загружает данные пользователя из SharedPreferences и отображает их в интерфейсе
+     * Загружает данные пользователя из БД и отображает их в интерфейсе
      */
     private void loadUserData() {
-        // Получаем доступ к сохраненным данным пользователя
-        SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
-        
-        // Загружаем сохраненные данные пользователя
-        String username = prefs.getString(KEY_USERNAME, "Пользователь");
-        String email = prefs.getString(KEY_EMAIL, "");
-        String password = prefs.getString(KEY_PASSWORD, "");
-        int coins = prefs.getInt(KEY_COINS, 0);
-
-        // Отображаем данные в текстовых полях
-        tvUsername.setText(username);
-        tvEmail.setText(email);
-        
-        // Показываем пароль как точки для безопасности
-        if (!password.isEmpty()) {
-            StringBuilder hiddenPassword = new StringBuilder();
-            for (int i = 0; i < password.length(); i++) {
-                hiddenPassword.append("•");
-            }
-            tvPassword.setText(hiddenPassword.toString());
-        } else {
-            tvPassword.setText("");
+        if (currentUserId == -1) {
+            return;
         }
-
+        
+        // Загружаем пользователя из БД
+        currentUser = userDao.getUserById(currentUserId);
+        
+        if (currentUser != null) {
+            // Отображаем данные в текстовых полях
+            tvUsername.setText(currentUser.username);
+            tvEmail.setText(currentUser.email);
+            
+            // Показываем пароль как точки для безопасности
+            if (currentUser.password != null && !currentUser.password.isEmpty()) {
+                StringBuilder hiddenPassword = new StringBuilder();
+                for (int i = 0; i < currentUser.password.length(); i++) {
+                    hiddenPassword.append("•");
+                }
+                tvPassword.setText(hiddenPassword.toString());
+            } else {
+                tvPassword.setText("");
+            }
+        }
     }
 
     /**
@@ -190,14 +205,16 @@ public class ProfileActivity extends AppCompatActivity {
             return;
         }
         
-        // Сохраняем новый никнейм в SharedPreferences
-        SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
-        prefs.edit().putString(KEY_USERNAME, newUsername).apply();
-        
-        // Обновляем отображение и завершаем редактирование
-        tvUsername.setText(newUsername);
-        cancelEditingUsername();
-        Toast.makeText(this, "Имя пользователя обновлено", Toast.LENGTH_SHORT).show();
+        // Обновляем никнейм в БД
+        if (currentUser != null) {
+            currentUser.username = newUsername;
+            userDao.updateUser(currentUser);
+            
+            // Обновляем отображение и завершаем редактирование
+            tvUsername.setText(newUsername);
+            cancelEditingUsername();
+            Toast.makeText(this, "Имя пользователя обновлено", Toast.LENGTH_SHORT).show();
+        }
     }
 
     /**
@@ -247,14 +264,23 @@ public class ProfileActivity extends AppCompatActivity {
             return;
         }
         
-        // Сохраняем новый email в SharedPreferences
-        SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
-        prefs.edit().putString(KEY_EMAIL, newEmail).apply();
+        // Проверяем, не занят ли email другим пользователем
+        User existingUser = userDao.getUserByEmail(newEmail);
+        if (existingUser != null && existingUser.id != currentUserId) {
+            Toast.makeText(this, "Email уже используется другим пользователем", Toast.LENGTH_SHORT).show();
+            return;
+        }
         
-        // Обновляем отображение и завершаем редактирование
-        tvEmail.setText(newEmail);
-        cancelEditingEmail();
-        Toast.makeText(this, "Email обновлен", Toast.LENGTH_SHORT).show();
+        // Обновляем email в БД
+        if (currentUser != null) {
+            currentUser.email = newEmail;
+            userDao.updateUser(currentUser);
+            
+            // Обновляем отображение и завершаем редактирование
+            tvEmail.setText(newEmail);
+            cancelEditingEmail();
+            Toast.makeText(this, "Email обновлен", Toast.LENGTH_SHORT).show();
+        }
     }
 
     /**
@@ -274,9 +300,10 @@ public class ProfileActivity extends AppCompatActivity {
      * Начинает редактирование пароля пользователя
      */
     private void startEditingPassword() {
-        // Загружаем исходный пароль из SharedPreferences
-        SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
-        originalPassword = prefs.getString(KEY_PASSWORD, "");
+        // Сохраняем исходный пароль
+        if (currentUser != null) {
+            originalPassword = currentUser.password;
+        }
         // Скрываем текстовое поле и показываем поле ввода (пароль начинается пустым)
         tvPassword.setVisibility(View.GONE);
         etPasswordEdit.setVisibility(View.VISIBLE);
@@ -305,14 +332,16 @@ public class ProfileActivity extends AppCompatActivity {
             return;
         }
         
-        // Сохраняем новый пароль в SharedPreferences
-        SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
-        prefs.edit().putString(KEY_PASSWORD, newPassword).apply();
-        
-        // Обновляем отображение пароля (перезагружаем данные)
-        loadUserData();
-        cancelEditingPassword();
-        Toast.makeText(this, "Пароль обновлен", Toast.LENGTH_SHORT).show();
+        // Обновляем пароль в БД
+        if (currentUser != null) {
+            currentUser.password = newPassword;
+            userDao.updateUser(currentUser);
+            
+            // Обновляем отображение пароля (перезагружаем данные)
+            loadUserData();
+            cancelEditingPassword();
+            Toast.makeText(this, "Пароль обновлен", Toast.LENGTH_SHORT).show();
+        }
     }
 
     /**
