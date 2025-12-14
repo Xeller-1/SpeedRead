@@ -64,6 +64,10 @@
             android:name=".activities.ReadingActivity"
             android:exported="false" />
 
+        <activity
+            android:name=".activities.ReadingResultsActivity"
+            android:exported="false" />
+
     </application>
 
 </manifest>

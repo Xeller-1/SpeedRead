@@ -24,7 +24,7 @@ import com.example.speedread2.database.entities.User;
  * Использует FrameLayout для динамической загрузки контента
  */
 public class MainActivity extends AppCompatActivity {
-
+    
     // Кнопки нижней навигации
     private Button btnRaces, btnAcademy, btnProfile;
     // Контейнер для динамической загрузки контента

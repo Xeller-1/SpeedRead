@@ -53,10 +53,22 @@ public class StoriesActivity extends AppCompatActivity {
         // Загружаем рассказы из БД
         loadStories();
 
-        // Настраиваем обработчик клика на карточку
+        // Настраиваем обработчик клика на карточку и отображаем данные
         if (stories != null && !stories.isEmpty() && cardStory1 != null) {
             Text story1 = stories.get(0);
-            cardStory1.setOnClickListener(v -> {
+            
+            // Находим TextViews в карточке
+            android.widget.TextView textTitle = cardStory1.findViewById(R.id.textTitle1);
+            android.widget.TextView textAuthor = cardStory1.findViewById(R.id.textAuthor1);
+            
+            if (textTitle != null && story1.title != null) {
+                textTitle.setText(story1.title);
+            }
+            if (textAuthor != null && story1.author != null) {
+                textAuthor.setText(story1.author);
+            }
+            
+        cardStory1.setOnClickListener(v -> {
                 Intent intent = new Intent(this, ReadingActivity.class);
                 intent.putExtra("textId", story1.id);
                 startActivity(intent);

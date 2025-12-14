@@ -54,10 +54,22 @@ public class FablesActivity extends AppCompatActivity {
         // Загружаем басни из БД
         loadFables();
 
-        // Настраиваем обработчики кликов на карточки
+        // Настраиваем обработчики кликов на карточки и отображаем данные
         if (fables != null && !fables.isEmpty()) {
             if (fables.size() > 0 && cardFable1 != null) {
                 Text fable1 = fables.get(0);
+                
+                // Находим TextViews в карточке
+                android.widget.TextView textTitle1 = cardFable1.findViewById(R.id.textTitle1);
+                android.widget.TextView textAuthor1 = cardFable1.findViewById(R.id.textAuthor1);
+                
+                if (textTitle1 != null && fable1.title != null) {
+                    textTitle1.setText(fable1.title);
+                }
+                if (textAuthor1 != null && fable1.author != null) {
+                    textAuthor1.setText(fable1.author);
+                }
+                
                 cardFable1.setOnClickListener(v -> {
                     Intent intent = new Intent(this, ReadingActivity.class);
                     intent.putExtra("textId", fable1.id);
@@ -66,6 +78,18 @@ public class FablesActivity extends AppCompatActivity {
             }
             if (fables.size() > 1 && cardFable2 != null) {
                 Text fable2 = fables.get(1);
+                
+                // Находим TextViews в карточке
+                android.widget.TextView textTitle2 = cardFable2.findViewById(R.id.textTitle2);
+                android.widget.TextView textAuthor2 = cardFable2.findViewById(R.id.textAuthor2);
+                
+                if (textTitle2 != null && fable2.title != null) {
+                    textTitle2.setText(fable2.title);
+                }
+                if (textAuthor2 != null && fable2.author != null) {
+                    textAuthor2.setText(fable2.author);
+                }
+                
                 cardFable2.setOnClickListener(v -> {
                     Intent intent = new Intent(this, ReadingActivity.class);
                     intent.putExtra("textId", fable2.id);
