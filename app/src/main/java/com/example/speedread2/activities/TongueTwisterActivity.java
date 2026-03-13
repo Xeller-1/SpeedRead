@@ -30,6 +30,7 @@ import androidx.core.content.ContextCompat;
 import com.example.speedread2.R;
 import com.example.speedread2.database.AppDatabase;
 import com.example.speedread2.dao.TongueTwisterDao;
+import com.example.speedread2.dao.UserDao;
 import com.example.speedread2.database.entities.TongueTwister;
 
 import java.util.ArrayList;
@@ -44,6 +45,7 @@ public class TongueTwisterActivity extends AppCompatActivity {
     private static final int PERMISSION_REQUEST_CODE = 100;
     
     private TongueTwisterDao tongueTwisterDao;
+    private UserDao userDao;
     private TongueTwister currentTongueTwister;
     private String[] words; // Массив слов скороговорки
     
@@ -57,6 +59,8 @@ public class TongueTwisterActivity extends AppCompatActivity {
     private boolean isListening = false;
     private boolean isReadingStarted = false;
     private boolean isSpeaking = false;
+    private boolean isCompleted = false;
+    private boolean isRewardGiven = false;
     
     private ObjectAnimator characterAnimator;
     private Handler speechHandler = new Handler(Looper.getMainLooper());
@@ -77,6 +81,7 @@ public class TongueTwisterActivity extends AppCompatActivity {
         // Инициализация БД
         AppDatabase database = AppDatabase.getInstance(this);
         tongueTwisterDao = database.tongueTwisterDao();
+        userDao = database.userDao();
         
         // Получаем ID скороговорки из Intent
         int tongueTwisterId = getIntent().getIntExtra("tongueTwisterId", -1);
@@ -199,7 +204,7 @@ public class TongueTwisterActivity extends AppCompatActivity {
                     if (error == SpeechRecognizer.ERROR_NO_MATCH || error == SpeechRecognizer.ERROR_SPEECH_TIMEOUT) {
                         highlightAllWordsRed();
                         speechHandler.postDelayed(() -> {
-                            if (isReadingStarted) {
+                            if (isReadingStarted && !isCompleted) {
                                 startListening();
                             }
                         }, 1000);
@@ -221,12 +226,16 @@ public class TongueTwisterActivity extends AppCompatActivity {
                             highlightWordsInLine(recognizedText, true);
                         });
                         
-                        // Продолжаем слушать
-                        speechHandler.postDelayed(() -> {
-                            if (isReadingStarted) {
-                                startListening();
-                            }
-                        }, 2000);
+                        if (matchQuality >= 70) {
+                            handleSuccessfulReading();
+                        } else {
+                            // Продолжаем слушать
+                            speechHandler.postDelayed(() -> {
+                                if (isReadingStarted && !isCompleted) {
+                                    startListening();
+                                }
+                            }, 2000);
+                        }
                     }
                 }
                 
@@ -441,6 +450,42 @@ public class TongueTwisterActivity extends AppCompatActivity {
         stopCharacterAnimation();
     }
     
+    private void handleSuccessfulReading() {
+        if (isCompleted) return;
+
+        isCompleted = true;
+        isReadingStarted = false;
+        stopListening();
+        btnMicrophone.setEnabled(false);
+        btnMicrophone.setText("Прочитано");
+
+        int rewardCoins = getRewardByDifficulty(currentTongueTwister.difficulty);
+        if (!isRewardGiven) {
+            SharedPreferences prefs = getSharedPreferences("UserPrefs", MODE_PRIVATE);
+            int currentUserId = prefs.getInt("currentUserId", -1);
+            if (currentUserId != -1) {
+                var user = userDao.getUserById(currentUserId);
+                if (user != null) {
+                    userDao.updateCoins(currentUserId, user.coins + rewardCoins);
+                }
+            }
+            isRewardGiven = true;
+        }
+
+        Toast.makeText(this, "Скороговорка успешно прочитана! +" + rewardCoins + " монет", Toast.LENGTH_LONG).show();
+    }
+
+    private int getRewardByDifficulty(int difficulty) {
+        switch (difficulty) {
+            case 1:
+                return 3;
+            case 2:
+                return 6;
+            default:
+                return 10;
+        }
+    }
+
     private String getErrorText(int errorCode) {
         switch (errorCode) {
             case SpeechRecognizer.ERROR_AUDIO:
@@ -499,7 +544,7 @@ public class TongueTwisterActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        if (isReadingStarted && !isListening) {
+        if (isReadingStarted && !isListening && !isCompleted) {
             startListening();
         }
     }
