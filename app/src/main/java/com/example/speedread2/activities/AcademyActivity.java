@@ -14,41 +14,48 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.cardview.widget.CardView;
 
 import com.example.speedread2.R;
-import com.example.speedread2.utils.BackgroundHelper;
 import com.example.speedread2.dao.TongueTwisterDao;
 import com.example.speedread2.database.AppDatabase;
 import com.example.speedread2.database.entities.TongueTwister;
+import com.example.speedread2.utils.BackgroundHelper;
 
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 
-/**
- * Activity для отображения раздела "Академия"
- * Показывает список скороговорок из базы данных
- * Позволяет выбрать скороговорку для чтения
- */
 public class AcademyActivity extends AppCompatActivity {
 
-    private AppDatabase database;
+    private static final int SORT_DEFAULT = 0;
+    private static final int SORT_TITLE_ASC = 1;
+    private static final int SORT_DIFFICULTY_ASC = 2;
+    private static final int SORT_DIFFICULTY_DESC = 3;
+
     private TongueTwisterDao tongueTwisterDao;
     private LinearLayout containerTongueTwisters;
+    private TextView tvFilterStatus;
+
     private Integer selectedDifficulty = null;
+    private int selectedSort = SORT_DEFAULT;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_academy);
 
-        database = AppDatabase.getInstance(this);
+        AppDatabase database = AppDatabase.getInstance(this);
         tongueTwisterDao = database.tongueTwisterDao();
 
         BackgroundHelper.applyBackground(this);
 
         ImageButton btnBack = findViewById(R.id.btnBack);
         ImageButton btnFilter = findViewById(R.id.btnFilter);
+        ImageButton btnSort = findViewById(R.id.btnSort);
+        tvFilterStatus = findViewById(R.id.tvFilterStatus);
         containerTongueTwisters = findViewById(R.id.containerTongueTwisters);
 
-        btnBack.setOnClickListener(v -> finish());
+        btnBack.setOnClickListener(v -> getOnBackPressedDispatcher().onBackPressed());
         btnFilter.setOnClickListener(this::showFilterMenu);
+        btnSort.setOnClickListener(this::showSortMenu);
 
         loadTongueTwisters();
     }
@@ -83,18 +90,48 @@ public class AcademyActivity extends AppCompatActivity {
         popupMenu.show();
     }
 
+    private void showSortMenu(View anchorView) {
+        PopupMenu popupMenu = new PopupMenu(this, anchorView);
+        popupMenu.getMenu().add(Menu.NONE, 1, Menu.NONE, "По умолчанию");
+        popupMenu.getMenu().add(Menu.NONE, 2, Menu.NONE, "По названию А-Я");
+        popupMenu.getMenu().add(Menu.NONE, 3, Menu.NONE, "Сложность: легко → сложно");
+        popupMenu.getMenu().add(Menu.NONE, 4, Menu.NONE, "Сложность: сложно → легко");
 
+        popupMenu.setOnMenuItemClickListener(item -> {
+            switch (item.getItemId()) {
+                case 2:
+                    selectedSort = SORT_TITLE_ASC;
+                    break;
+                case 3:
+                    selectedSort = SORT_DIFFICULTY_ASC;
+                    break;
+                case 4:
+                    selectedSort = SORT_DIFFICULTY_DESC;
+                    break;
+                case 1:
+                default:
+                    selectedSort = SORT_DEFAULT;
+                    break;
+            }
+            loadTongueTwisters();
+            return true;
+        });
 
-    /**
-     * Загружает скороговорки из базы данных и создает карточки
-     */
+        popupMenu.show();
+    }
+
     private void loadTongueTwisters() {
-        List<TongueTwister> tongueTwisters;
-        if (selectedDifficulty == null) {
-            tongueTwisters = tongueTwisterDao.getAllTongueTwisters();
-        } else {
-            tongueTwisters = tongueTwisterDao.getTongueTwistersByDifficulty(selectedDifficulty);
+        List<TongueTwister> source = tongueTwisterDao.getAllTongueTwisters();
+        List<TongueTwister> tongueTwisters = new ArrayList<>();
+
+        for (TongueTwister item : source) {
+            if (selectedDifficulty == null || item.difficulty == selectedDifficulty) {
+                tongueTwisters.add(item);
+            }
         }
+
+        applySort(tongueTwisters);
+        updateFilterStatus();
 
         containerTongueTwisters.removeAllViews();
 
@@ -120,22 +157,7 @@ public class AcademyActivity extends AppCompatActivity {
             tvTitle.setText(tongueTwister.title);
             tvContent.setText(tongueTwister.content);
             tvSounds.setText("Звуки: " + tongueTwister.sounds);
-
-            String difficultyText;
-            switch (tongueTwister.difficulty) {
-                case 1:
-                    difficultyText = "Легко";
-                    break;
-                case 2:
-                    difficultyText = "Средне";
-                    break;
-                case 3:
-                    difficultyText = "Сложно";
-                    break;
-                default:
-                    difficultyText = "Уровень " + tongueTwister.difficulty;
-            }
-            tvDifficulty.setText(difficultyText);
+            tvDifficulty.setText(getDifficultyText(tongueTwister.difficulty));
 
             card.setOnClickListener(v -> {
                 Intent intent = new Intent(this, TongueTwisterActivity.class);
@@ -144,6 +166,63 @@ public class AcademyActivity extends AppCompatActivity {
             });
 
             containerTongueTwisters.addView(cardView);
+        }
+    }
+
+    private void applySort(List<TongueTwister> tongueTwisters) {
+        switch (selectedSort) {
+            case SORT_TITLE_ASC:
+                tongueTwisters.sort(Comparator.comparing(t -> t.title == null ? "" : t.title));
+                break;
+            case SORT_DIFFICULTY_ASC:
+                tongueTwisters.sort(Comparator.comparingInt(t -> t.difficulty));
+                break;
+            case SORT_DIFFICULTY_DESC:
+                tongueTwisters.sort((a, b) -> Integer.compare(b.difficulty, a.difficulty));
+                break;
+            case SORT_DEFAULT:
+            default:
+                break;
+        }
+    }
+
+    private void updateFilterStatus() {
+        if (tvFilterStatus == null) return;
+
+        String difficulty = selectedDifficulty == null
+            ? "все"
+            : (selectedDifficulty == 1 ? "лёгкие" : selectedDifficulty == 2 ? "средние" : "сложные");
+
+        String sort;
+        switch (selectedSort) {
+            case SORT_TITLE_ASC:
+                sort = "название А-Я";
+                break;
+            case SORT_DIFFICULTY_ASC:
+                sort = "сложность ↑";
+                break;
+            case SORT_DIFFICULTY_DESC:
+                sort = "сложность ↓";
+                break;
+            case SORT_DEFAULT:
+            default:
+                sort = "по умолчанию";
+                break;
+        }
+
+        tvFilterStatus.setText("Фильтр: " + difficulty + " • Сортировка: " + sort);
+    }
+
+    private String getDifficultyText(int difficulty) {
+        switch (difficulty) {
+            case 1:
+                return "Легко";
+            case 2:
+                return "Средне";
+            case 3:
+                return "Сложно";
+            default:
+                return "Уровень " + difficulty;
         }
     }
 }
