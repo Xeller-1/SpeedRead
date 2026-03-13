@@ -21,6 +21,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class ReadingResultsActivity extends AppCompatActivity {
+
+    private static final String KEY_RESULT_PROCESSED = "key_result_processed";
     
     private AppDatabase database;
     private QuestionDao questionDao;
@@ -43,6 +45,7 @@ public class ReadingResultsActivity extends AppCompatActivity {
     private int textId;
     private int readingSpeed;
     private int clarity;
+    private boolean isResultProcessed = false;
     
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -58,6 +61,10 @@ public class ReadingResultsActivity extends AppCompatActivity {
         textId = getIntent().getIntExtra("textId", -1);
         readingSpeed = getIntent().getIntExtra("readingSpeed", 0);
         clarity = getIntent().getIntExtra("clarity", 0);
+
+        if (savedInstanceState != null) {
+            isResultProcessed = savedInstanceState.getBoolean(KEY_RESULT_PROCESSED, false);
+        }
         
         // Инициализация UI
         tvReadingSpeed = findViewById(R.id.tvReadingSpeed);
@@ -85,20 +92,23 @@ public class ReadingResultsActivity extends AppCompatActivity {
         android.content.SharedPreferences prefs = getSharedPreferences("UserPrefs", MODE_PRIVATE);
         int currentUserId = prefs.getInt("currentUserId", -1);
 
-        User user = database.userDao().getUserById(currentUserId);
-        if (user != null) {
-            var stats = database.userStatsDao().getUserStats(user.id);
-            if (stats != null) {
-                stats.clarity = Math.max(clarity, stats.clarity);
-                stats.readingSpeed = Math.max(readingSpeed, stats.readingSpeed);
-                stats.expression = Math.max(stats.expression, 0);
-                database.userStatsDao().updateUserStats(stats);
-            }
+        if (!isResultProcessed) {
+            User user = database.userDao().getUserById(currentUserId);
+            if (user != null) {
+                var stats = database.userStatsDao().getUserStats(user.id);
+                if (stats != null) {
+                    stats.clarity = Math.max(clarity, stats.clarity);
+                    stats.readingSpeed = Math.max(readingSpeed, stats.readingSpeed);
+                    stats.expression = Math.max(stats.expression, 0);
+                    database.userStatsDao().updateUserStats(stats);
+                }
 
-            var completedText = textDao.getTextById(textId);
-            if (completedText != null) {
-                database.userDao().updateCoins(currentUserId, user.coins + completedText.rewardCoins);
+                var completedText = textDao.getTextById(textId);
+                if (completedText != null) {
+                    database.userDao().updateCoins(currentUserId, user.coins + completedText.rewardCoins);
+                }
             }
+            isResultProcessed = true;
         }
 
         
@@ -134,6 +144,12 @@ public class ReadingResultsActivity extends AppCompatActivity {
         }
     }
     
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+        outState.putBoolean(KEY_RESULT_PROCESSED, isResultProcessed);
+    }
+
     private void showQuestion(int index) {
         if (index >= questions.size()) return;
         

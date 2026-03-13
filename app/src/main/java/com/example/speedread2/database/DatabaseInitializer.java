@@ -84,7 +84,7 @@ public class DatabaseInitializer {
                     "Сергей Есенин",
                     1,
                     25,
-                    10));
+                    15));
                     
                 texts.add(new Text(poemsCategoryId,
                     "Зимнее утро",
@@ -102,7 +102,7 @@ public class DatabaseInitializer {
                     "Александр Пушкин",
                     3,
                     35,
-                    20));
+                    15));
             }
             
             // Рассказы
@@ -114,7 +114,7 @@ public class DatabaseInitializer {
                     "Иван Тургенев",
                     1,
                     50,
-                    12));
+                    30));
                     
                 texts.add(new Text(storiesCategoryId,
                     "Каштанка",
@@ -123,7 +123,7 @@ public class DatabaseInitializer {
                     "Антон Чехов",
                     2,
                     60,
-                    18));
+                    30));
             }
             
             // Басни
@@ -135,7 +135,7 @@ public class DatabaseInitializer {
                     "Иван Крылов",
                     2,
                     55,
-                    15));
+                    45));
                     
                 texts.add(new Text(fablesCategoryId,
                     "Стрекоза и Муравей",
@@ -144,7 +144,7 @@ public class DatabaseInitializer {
                     "Иван Крылов",
                     1,
                     40,
-                    10));
+                    45));
             }
             
             if (!texts.isEmpty()) {
