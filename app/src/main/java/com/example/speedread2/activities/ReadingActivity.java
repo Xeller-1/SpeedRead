@@ -1,10 +1,12 @@
 package com.example.speedread2.activities;
 
 import android.Manifest;
+import android.animation.AnimatorSet;
+import android.animation.Keyframe;
 import android.animation.ObjectAnimator;
+import android.animation.PropertyValuesHolder;
 import android.animation.ValueAnimator;
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.os.Bundle;
@@ -31,6 +33,7 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
 import com.example.speedread2.R;
+import com.example.speedread2.utils.BackgroundHelper;
 import com.example.speedread2.database.AppDatabase;
 import com.example.speedread2.dao.QuestionDao;
 import com.example.speedread2.dao.TextDao;
@@ -66,9 +69,11 @@ public class ReadingActivity extends AppCompatActivity {
     private boolean isReadingStarted = false;
     private boolean isSpeaking = false; // Флаг активного чтения
     
-    private ValueAnimator characterAnimator;
+    private AnimatorSet characterAnimator;
+    private View characterTrack;
     private Handler speechHandler = new Handler(Looper.getMainLooper());
     private Runnable speechTimeoutRunnable;
+    private long lastRecognitionRestartMs = 0L;
     
     // Статистика чтения
     private long readingStartTime = 0;
@@ -89,7 +94,7 @@ public class ReadingActivity extends AppCompatActivity {
         setContentView(R.layout.activity_reading);
         
         // Применяем фон
-        applyBackground();
+        BackgroundHelper.applyBackground(this);
         
         // Инициализация БД
         AppDatabase database = AppDatabase.getInstance(this);
@@ -131,6 +136,7 @@ public class ReadingActivity extends AppCompatActivity {
         
         // Инициализация UI
         tvCurrentLine = findViewById(R.id.tvCurrentLine);
+        characterTrack = findViewById(R.id.characterTrack);
         ivCharacter = findViewById(R.id.ivCharacter);
         btnMicrophone = findViewById(R.id.btnMicrophone);
         btnBack = findViewById(R.id.btnBack);
@@ -221,6 +227,10 @@ public class ReadingActivity extends AppCompatActivity {
             speechRecognizerIntent.putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true);
             speechRecognizerIntent.putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1);
             speechRecognizerIntent.putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE, getPackageName());
+            speechRecognizerIntent.putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, true);
+            speechRecognizerIntent.putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, 700);
+            speechRecognizerIntent.putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS, 500);
+            speechRecognizerIntent.putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_MINIMUM_LENGTH_MILLIS, 1000);
             
             // Создаем listener как переменную для переиспользования
             RecognitionListener recognitionListener = new RecognitionListener() {
@@ -307,7 +317,7 @@ public class ReadingActivity extends AppCompatActivity {
                                         Log.e("ReadingActivity", "Ошибка пересоздания SpeechRecognizer", e);
                                     }
                                 }
-                            }, 500);
+                            }, 220);
                             return;
                         }
                         
@@ -374,7 +384,7 @@ public class ReadingActivity extends AppCompatActivity {
                                     if (isListening) {
                                         moveToNextLine();
                                     }
-                                }, matchQuality >= 60 ? 800 : 1200);
+                                }, matchQuality >= 60 ? 220 : 380);
                             } else {
                                 // Плохое совпадение - продолжаем слушать
                                 Log.d("ReadingActivity", "Плохое совпадение (" + matchQuality + "%), продолжаем слушать");
@@ -384,15 +394,7 @@ public class ReadingActivity extends AppCompatActivity {
                                     }
                                 });
                                 if (isListening && speechRecognizer != null) {
-                                    speechHandler.postDelayed(() -> {
-                                        if (isListening && speechRecognizer != null) {
-                                            try {
-                                                speechRecognizer.startListening(speechRecognizerIntent);
-                                            } catch (Exception e) {
-                                                Log.e("ReadingActivity", "Ошибка перезапуска", e);
-                                            }
-                                        }
-                                    }, 1500);
+                                    restartListeningSafely(220);
                                 }
                             }
                         } else {
@@ -405,15 +407,7 @@ public class ReadingActivity extends AppCompatActivity {
                             });
                             // Продолжаем слушать
                             if (isListening && speechRecognizer != null) {
-                                speechHandler.postDelayed(() -> {
-                                    if (isListening && speechRecognizer != null) {
-                                        try {
-                                            speechRecognizer.startListening(speechRecognizerIntent);
-                                        } catch (Exception e) {
-                                            Log.e("ReadingActivity", "Ошибка перезапуска", e);
-                                        }
-                                    }
-                                }, 1500);
+                                restartListeningSafely(220);
                             }
                         }
                     }
@@ -809,12 +803,33 @@ public class ReadingActivity extends AppCompatActivity {
                         });
                     }
                 }
-            }, 200);
+            }, 80);
         } else {
             Log.w("ReadingActivity", "Уже слушаем: isListening=" + isListening);
         }
     }
     
+    private void restartListeningSafely(long delayMs) {
+        speechHandler.postDelayed(() -> {
+            if (isListening && speechRecognizer != null) {
+                long now = System.currentTimeMillis();
+                if (now - lastRecognitionRestartMs < 150) {
+                    return;
+                }
+                try {
+                    speechRecognizer.cancel();
+                } catch (Exception ignored) {
+                }
+                try {
+                    speechRecognizer.startListening(speechRecognizerIntent);
+                    lastRecognitionRestartMs = now;
+                } catch (Exception e) {
+                    Log.e("ReadingActivity", "Ошибка перезапуска", e);
+                }
+            }
+        }, delayMs);
+    }
+
     private void stopListening() {
         if (speechRecognizer != null && isListening) {
             isListening = false;
@@ -838,7 +853,7 @@ public class ReadingActivity extends AppCompatActivity {
                             Log.e("ReadingActivity", "Ошибка перезапуска", e);
                         }
                     }
-                }, 500);
+                }, 180);
             }
         } else {
             // Текст закончен - показываем результаты
@@ -849,18 +864,45 @@ public class ReadingActivity extends AppCompatActivity {
     }
     
     private void startCharacterAnimation() {
-        if (ivCharacter != null && characterAnimator == null) {
-            ivCharacter.setVisibility(View.VISIBLE);
-            int screenWidth = getResources().getDisplayMetrics().widthPixels;
-            
-            // Анимация бега слева направо
-            characterAnimator = ObjectAnimator.ofFloat(ivCharacter, "translationX", 0f, screenWidth - ivCharacter.getWidth());
-            characterAnimator.setDuration(5000); // 5 секунд на пробежку
-            characterAnimator.setInterpolator(new LinearInterpolator());
-            characterAnimator.setRepeatCount(ValueAnimator.INFINITE);
-            characterAnimator.setRepeatMode(ValueAnimator.RESTART);
-            characterAnimator.start();
+        if (ivCharacter == null || characterTrack == null || characterAnimator != null) {
+            return;
         }
+
+        ivCharacter.setVisibility(View.VISIBLE);
+        characterTrack.post(() -> {
+            if (characterAnimator != null) {
+                return;
+            }
+
+            float maxX = Math.max(120f, characterTrack.getWidth() - ivCharacter.getWidth() - 24f);
+            float laneCenter = Math.max(0f, (characterTrack.getHeight() - ivCharacter.getHeight()) / 2f);
+            float laneTop = Math.max(0f, laneCenter - 55f);
+            ObjectAnimator moveX = ObjectAnimator.ofFloat(ivCharacter, "translationX", 0f, maxX);
+            moveX.setDuration(4200);
+            moveX.setRepeatCount(ValueAnimator.INFINITE);
+            moveX.setRepeatMode(ValueAnimator.RESTART);
+            moveX.setInterpolator(new LinearInterpolator());
+
+            PropertyValuesHolder pvhY = PropertyValuesHolder.ofKeyframe(
+                "translationY",
+                Keyframe.ofFloat(0f, laneCenter),
+                Keyframe.ofFloat(0.18f, laneTop),
+                Keyframe.ofFloat(0.36f, laneTop),
+                Keyframe.ofFloat(0.52f, laneCenter),
+                Keyframe.ofFloat(0.70f, laneTop),
+                Keyframe.ofFloat(0.88f, laneCenter),
+                Keyframe.ofFloat(1f, laneCenter)
+            );
+            ObjectAnimator moveY = ObjectAnimator.ofPropertyValuesHolder(ivCharacter, pvhY);
+            moveY.setDuration(4200);
+            moveY.setRepeatCount(ValueAnimator.INFINITE);
+            moveY.setRepeatMode(ValueAnimator.RESTART);
+            moveY.setInterpolator(new LinearInterpolator());
+
+            characterAnimator = new AnimatorSet();
+            characterAnimator.playTogether(moveX, moveY);
+            characterAnimator.start();
+        });
     }
     
     private void stopCharacterAnimation() {
@@ -869,7 +911,8 @@ public class ReadingActivity extends AppCompatActivity {
             characterAnimator = null;
         }
         if (ivCharacter != null) {
-            ivCharacter.setTranslationX(0f); // Возвращаем в начало
+            ivCharacter.setTranslationX(0f);
+            ivCharacter.setTranslationY(0f);
         }
     }
     
@@ -919,45 +962,5 @@ public class ReadingActivity extends AppCompatActivity {
     /**
      * Применяет выбранный фон из настроек (по умолчанию белый)
      */
-    private void applyBackground() {
-        SharedPreferences prefs = getSharedPreferences("UserPrefs", MODE_PRIVATE);
-        String backgroundName = prefs.getString("selectedBackground", null);
-        
-        View rootView = findViewById(android.R.id.content);
-        if (rootView != null) {
-            // Для звездного фона используем drawable ресурс
-            if (backgroundName != null && backgroundName.equals("Звездный фон")) {
-                rootView.setBackgroundResource(R.drawable.splash_background);
-                return;
-            }
-            
-            int backgroundColor;
-            if (backgroundName != null) {
-                backgroundColor = getBackgroundColor(backgroundName);
-            } else {
-                backgroundColor = 0xFFFFFFFF; // Белый по умолчанию
-            }
-            
-            rootView.setBackgroundColor(backgroundColor);
-        }
-    }
-    
-    /**
-     * Возвращает цвет фона по имени
-     */
-    private int getBackgroundColor(String backgroundName) {
-        switch (backgroundName) {
-            case "Синий фон":
-                return 0xFF2196F3; // Синий
-            case "Звездный фон":
-                return 0xFF0a0e27; // Темно-синий для звездного фона (fallback)
-            case "Красный фон":
-                return 0xFFF44336; // Красный
-            case "Фиолетовый фон":
-                return 0xFF9C27B0; // Фиолетовый
-            default:
-                return 0xFFFFFFFF; // Белый по умолчанию
-        }
-    }
 }
 
