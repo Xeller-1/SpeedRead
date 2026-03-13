@@ -91,12 +91,10 @@
     <Button
         android:id="@+id/btnRegister"
         android:layout_width="match_parent"
-        android:layout_height="56dp"
+        android:layout_height="wrap_content"
         android:text="Зарегистрироваться"
-        android:textSize="16sp"
-        android:textStyle="bold"
         android:layout_marginBottom="8dp"
-        style="@style/Widget.MaterialComponents.Button" />
+        style="@style/ButtonModern" />
 
     <!-- Кнопка назад к входу -->
     <TextView

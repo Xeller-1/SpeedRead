@@ -22,6 +22,7 @@ import com.google.android.material.textfield.TextInputEditText;
 public class ProfileActivity extends AppCompatActivity {
 
     private TextView tvUsername, tvEmail, tvPassword;
+    private TextView tvBestSpeed, tvBestClarity, tvBestUnderstanding;
     private TextInputEditText etEmailEdit, etPasswordEdit, etUsernameEdit;
     private ImageButton btnShop, btnBack;
     private ImageButton btnEditEmail, btnSaveEmail, btnCancelEmail;
@@ -53,7 +54,11 @@ public class ProfileActivity extends AppCompatActivity {
         tvUsername = findViewById(R.id.tvUsername);
         tvEmail = findViewById(R.id.tvEmail);
         tvPassword = findViewById(R.id.tvPassword);
-        
+
+        tvBestClarity = findViewById(R.id.tvBestClarity);
+        tvBestSpeed = findViewById(R.id.tvBestSpeed);
+        tvBestUnderstanding = findViewById(R.id.tvBestUnderstanding);
+
         // Инициализация полей ввода для редактирования
         etEmailEdit = findViewById(R.id.etEmailEdit);
         etPasswordEdit = findViewById(R.id.etPasswordEdit);
@@ -163,7 +168,13 @@ public class ProfileActivity extends AppCompatActivity {
             // Отображаем данные в текстовых полях
             tvUsername.setText(currentUser.username);
             tvEmail.setText(currentUser.email);
-            
+
+            var data = database.userStatsDao().getUserStats(currentUserId);
+
+            tvBestSpeed.setText("Лучшая скорость: " + String.valueOf(data.readingSpeed));
+            tvBestClarity.setText("Лучшая четкость: " + String.valueOf(data.clarity));
+            tvBestUnderstanding.setText("Лучшее понимание: " + String.valueOf(data.expression));
+
             // Показываем пароль как точки для безопасности
             if (currentUser.password != null && !currentUser.password.isEmpty()) {
                 StringBuilder hiddenPassword = new StringBuilder();

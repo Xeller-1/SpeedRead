@@ -4,14 +4,14 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:padding="16dp"
     android:background="@color/white">
 
     <!-- Верхняя панель с кнопкой назад и заголовком -->
     <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="24dp">
+        android:padding="16dp"
+        android:paddingBottom="8dp">
 
         <ImageButton
             android:id="@+id/btnBack"
@@ -27,7 +27,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Уроки"
+            android:text="Скороговорки"
             android:textSize="28sp"
             android:textStyle="bold"
             android:textColor="@color/black"
@@ -37,120 +37,24 @@
 
     </RelativeLayout>
 
-    <!-- Урок 1: Четко произносим звуки -->
-    <androidx.cardview.widget.CardView
-        android:id="@+id/cardLesson1"
+    <!-- ScrollView для списка скороговорок -->
+    <ScrollView
         android:layout_width="match_parent"
-        android:layout_height="120dp"
-        android:layout_marginBottom="16dp"
-        android:clickable="true"
-        android:focusable="true"
-        android:foreground="?android:attr/selectableItemBackground"
-        app:cardCornerRadius="8dp"
-        app:cardElevation="4dp">
+        android:layout_height="match_parent"
+        android:fillViewport="true">
 
         <LinearLayout
+            android:id="@+id/containerTongueTwisters"
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
+            android:layout_height="wrap_content"
             android:orientation="vertical"
             android:padding="16dp"
-            android:gravity="center">
+            android:paddingTop="8dp">
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Четко произносим звуки"
-                android:textSize="20sp"
-                android:textStyle="bold"
-                android:textColor="@color/black"
-                android:layout_marginBottom="8dp" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="улучшаем артикуляцию"
-                android:textSize="14sp"
-                android:textColor="#757575" />
+            <!-- Карточки скороговорок будут добавляться динамически -->
 
         </LinearLayout>
 
-    </androidx.cardview.widget.CardView>
-
-    <!-- Урок 2: Читаем выразительно -->
-    <androidx.cardview.widget.CardView
-        android:id="@+id/cardLesson2"
-        android:layout_width="match_parent"
-        android:layout_height="120dp"
-        android:layout_marginBottom="16dp"
-        android:clickable="true"
-        android:focusable="true"
-        android:foreground="?android:attr/selectableItemBackground"
-        app:cardCornerRadius="8dp"
-        app:cardElevation="4dp">
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:orientation="vertical"
-            android:padding="16dp"
-            android:gravity="center">
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Читаем выразительно"
-                android:textSize="20sp"
-                android:textStyle="bold"
-                android:textColor="@color/black"
-                android:layout_marginBottom="8dp" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="помощь с интонацией"
-                android:textSize="14sp"
-                android:textColor="#757575" />
-
-        </LinearLayout>
-
-    </androidx.cardview.widget.CardView>
-
-    <!-- Урок 3: Управляем скоростью -->
-    <androidx.cardview.widget.CardView
-        android:id="@+id/cardLesson3"
-        android:layout_width="match_parent"
-        android:layout_height="120dp"
-        android:clickable="true"
-        android:focusable="true"
-        android:foreground="?android:attr/selectableItemBackground"
-        app:cardCornerRadius="8dp"
-        app:cardElevation="4dp">
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:orientation="vertical"
-            android:padding="16dp"
-            android:gravity="center">
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Управляем скоростью"
-                android:textSize="20sp"
-                android:textStyle="bold"
-                android:textColor="@color/black"
-                android:layout_marginBottom="8dp" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="техники скорочтения"
-                android:textSize="14sp"
-                android:textColor="#757575" />
-
-        </LinearLayout>
-
-    </androidx.cardview.widget.CardView>
+    </ScrollView>
 
 </LinearLayout>

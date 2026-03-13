@@ -45,12 +45,8 @@
         android:layout_centerVertical="true"
         android:layout_marginTop="80dp"
         android:text="Играть"
-        android:textSize="18sp"
-        android:textStyle="bold"
-        android:paddingStart="32dp"
-        android:paddingEnd="32dp"
         android:minWidth="200dp"
-        style="@style/Widget.MaterialComponents.Button" />
+        style="@style/ButtonModern" />
 
     <!-- Круг персонажа немного ниже середины экрана, над кнопкой -->
     <ImageView

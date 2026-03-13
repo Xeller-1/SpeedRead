@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@color/white"
+    android:padding="16dp">
+
+    <!-- Кнопка назад -->
+    <ImageButton
+        android:id="@+id/btnBack"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:layout_gravity="start"
+        android:src="@drawable/ic_arrow_back"
+        android:background="?android:attr/selectableItemBackgroundBorderless"
+        android:contentDescription="Назад"
+        android:padding="8dp" />
+
+    <!-- Верхняя часть - персонаж -->
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:layout_marginTop="16dp"
+        android:layout_marginBottom="16dp">
+
+        <ImageView
+            android:id="@+id/ivCharacter"
+            android:layout_width="80dp"
+            android:layout_height="80dp"
+            android:layout_centerVertical="true"
+            android:src="@drawable/stickman_face"
+            android:contentDescription="Персонаж" />
+
+    </RelativeLayout>
+
+    <!-- Нижняя часть - текст и микрофон -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp"
+        android:paddingBottom="24dp"
+        android:layout_marginTop="16dp"
+        android:background="#F5F5F5"
+        android:elevation="8dp">
+
+        <!-- Текущая строка текста -->
+        <TextView
+            android:id="@+id/tvCurrentLine"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Нажмите кнопку микрофона, чтобы начать чтение"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:textColor="@color/black"
+            android:gravity="center"
+            android:padding="20dp"
+            android:minHeight="140dp"
+            android:background="@color/white"
+            android:elevation="4dp"
+            android:lineSpacingExtra="4dp" />
+
+        <!-- Кнопка микрофона -->
+        <Button
+            android:id="@+id/btnMicrophone"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="Начать чтение"
+            style="@style/ButtonModern" />
+
+    </LinearLayout>
+
+</LinearLayout>
+

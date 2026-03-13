@@ -2,6 +2,14 @@
 <resources>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
-    <color name="primary_blue">#2196F3</color>
+    <color name="primary_blue">#4A90E2</color>
+    <color name="primary_blue_dark">#357ABD</color>
+    <color name="primary_blue_light">#6BA3E8</color>
     <color name="light_gray">#F5F5F5</color>
+    <color name="accent_orange">#FF6B35</color>
+    <color name="accent_green">#4ECDC4</color>
+    <color name="accent_purple">#9B59B6</color>
+    <color name="text_secondary">#757575</color>
+    <color name="background_light">#FAFAFA</color>
+    <color name="card_background">#FFFFFF</color>
 </resources>

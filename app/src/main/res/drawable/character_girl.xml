@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="120dp"
+    android:height="120dp"
+    android:viewportWidth="120"
+    android:viewportHeight="120">
+    
+    <!-- Голова (круг) -->
+    <path
+        android:fillColor="#FFB6C1"
+        android:pathData="M60,20 A40,40 0 1,1 60,100 A40,40 0 1,1 60,20 Z" />
+    
+    <!-- Волосы -->
+    <path
+        android:fillColor="#8B4513"
+        android:pathData="M30,30 Q30,15 60,20 Q90,15 90,30 Q90,45 85,50 Q90,55 85,60 Q90,65 80,70 Q90,75 75,80 Q60,75 60,75 Q45,80 30,75 Q25,70 20,60 Q15,65 20,55 Q15,50 20,45 Q15,30 30,30 Z" />
+    
+    <!-- Левый глаз -->
+    <path
+        android:fillColor="#000000"
+        android:pathData="M48,48h4v4h-4z" />
+    
+    <!-- Правый глаз -->
+    <path
+        android:fillColor="#000000"
+        android:pathData="M68,48h4v4h-4z" />
+    
+    <!-- Нос -->
+    <path
+        android:fillColor="#000000"
+        android:pathData="M58,60 L60,65 L62,60 Z" />
+    
+    <!-- Рот (улыбка) -->
+    <path
+        android:strokeColor="#000000"
+        android:strokeWidth="2"
+        android:pathData="M50,75 Q60,85 70,75" />
+    
+</vector>
+

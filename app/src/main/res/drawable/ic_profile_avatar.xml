@@ -5,25 +5,21 @@
     android:viewportWidth="24"
     android:viewportHeight="24">
     
-    <!-- Голова (круг) -->
-    <path
-        android:fillColor="#FFD700"
-        android:pathData="M12,2C6.48,2 2,6.48 2,12s4.48,10 10,10s10,-4.48 10,-10S17.52,2 12,2z" />
-    
-    <!-- Левый глаз -->
-    <path
-        android:fillColor="#000000"
-        android:pathData="M9,9.5h1v1h-1z" />
-    
-    <!-- Правый глаз -->
-    <path
-        android:fillColor="#000000"
-        android:pathData="M15,9.5h1v1h-1z" />
-    
-    <!-- Рот (улыбка) -->
+    <!-- Внешний круг (толстый контур) -->
     <path
         android:strokeColor="#000000"
-        android:strokeWidth="1.5"
-        android:pathData="M9,14 Q12,17 15,14" />
+        android:strokeWidth="2"
+        android:fillColor="#00000000"
+        android:pathData="M12,2 A10,10 0 0,1 22,12 A10,10 0 0,1 12,22 A10,10 0 0,1 2,12 A10,10 0 0,1 12,2 Z" />
+    
+    <!-- Голова (черный круг: cx=12, cy=9, r=4) -->
+    <path
+        android:fillColor="#000000"
+        android:pathData="M12,5 A4,4 0 1,1 12,13 A4,4 0 1,1 12,5 Z" />
+    
+    <!-- Плечи и верхняя часть туловища (черная изогнутая форма) -->
+    <path
+        android:fillColor="#000000"
+        android:pathData="M6,14 Q6,16 7,17 Q8,18 9,18 L15,18 Q16,18 17,17 Q18,16 18,14 Q18,13 17,12.5 Q16,12 15,12 L9,12 Q8,12 7,12.5 Q6,13 6,14 Z" />
     
 </vector>

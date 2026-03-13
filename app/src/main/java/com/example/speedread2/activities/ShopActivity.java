@@ -109,7 +109,7 @@ public class ShopActivity extends AppCompatActivity {
     }
     
     /**
-     * Обрабатывает покупку товара
+     * Обрабатывает покупку товара (с примеркой)
      */
     private void purchaseItem(int index) {
         if (currentItems == null || index >= currentItems.size()) {
@@ -126,7 +126,11 @@ public class ShopActivity extends AppCompatActivity {
         
         // Проверяем, не куплен ли уже товар
         if (item.isPurchased == 1) {
-            android.widget.Toast.makeText(this, "Товар уже куплен", android.widget.Toast.LENGTH_SHORT).show();
+            // Если уже куплен, просто применяем
+            SharedPreferences prefs = getSharedPreferences("UserPrefs", MODE_PRIVATE);
+            prefs.edit().putString("selectedBackground", item.name).apply();
+            switchCategory(currentCategory);
+            android.widget.Toast.makeText(this, "Фон применен!", android.widget.Toast.LENGTH_SHORT).show();
             return;
         }
         
@@ -136,18 +140,76 @@ public class ShopActivity extends AppCompatActivity {
             return;
         }
         
-        // Покупаем товар
-        user.coins -= item.price;
-        userDao.updateCoins(currentUserId, user.coins);
+        // Показываем диалог с примеркой
+        showPreviewDialog(item, user);
+    }
+    
+    /**
+     * Показывает диалог с примеркой фона перед покупкой
+     */
+    private void showPreviewDialog(ShopItem item, User user) {
+        androidx.appcompat.app.AlertDialog.Builder builder = new androidx.appcompat.app.AlertDialog.Builder(this);
+        builder.setTitle("Примерка фона: " + item.name);
+        builder.setMessage("Цена: " + item.price + " монет\n\nВы хотите применить этот фон?");
         
-        item.isPurchased = 1;
-        shopItemDao.updateShopItem(item);
+        // Получаем цвет фона
+        int backgroundColor = getBackgroundColor(item.name);
         
-        // Обновляем отображение
-        loadUserData();
-        switchCategory(currentCategory);
+        // Создаем View для примера
+        android.view.View previewView = new android.view.View(this);
+        previewView.setBackgroundColor(backgroundColor);
+        android.widget.LinearLayout.LayoutParams params = new android.widget.LinearLayout.LayoutParams(
+            android.widget.LinearLayout.LayoutParams.MATCH_PARENT, 200);
+        params.setMargins(32, 16, 32, 16);
+        previewView.setLayoutParams(params);
         
-        android.widget.Toast.makeText(this, "Товар куплен!", android.widget.Toast.LENGTH_SHORT).show();
+        android.widget.LinearLayout layout = new android.widget.LinearLayout(this);
+        layout.setOrientation(android.widget.LinearLayout.VERTICAL);
+        layout.setPadding(32, 32, 32, 16);
+        layout.addView(previewView);
+        
+        builder.setView(layout);
+        
+        builder.setPositiveButton("Купить и применить", (dialog, which) -> {
+            // Покупаем товар
+            user.coins -= item.price;
+            userDao.updateCoins(currentUserId, user.coins);
+            
+            item.isPurchased = 1;
+            shopItemDao.updateShopItem(item);
+            
+            // Сохраняем выбранный фон в SharedPreferences
+            SharedPreferences prefs = getSharedPreferences("UserPrefs", MODE_PRIVATE);
+            prefs.edit().putString("selectedBackground", item.name).apply();
+            
+            // Обновляем отображение
+            loadUserData();
+            switchCategory(currentCategory);
+            
+            android.widget.Toast.makeText(this, "Товар куплен и применен!", android.widget.Toast.LENGTH_SHORT).show();
+        });
+        
+        builder.setNegativeButton("Отмена", null);
+        
+        builder.show();
+    }
+    
+    /**
+     * Возвращает цвет фона по имени (для предпросмотра)
+     */
+    private int getBackgroundColor(String backgroundName) {
+        switch (backgroundName) {
+            case "Синий фон":
+                return 0xFF2196F3; // Синий
+            case "Звездный фон":
+                return 0xFF0a0e27; // Темно-синий для звездного фона
+            case "Красный фон":
+                return 0xFFF44336; // Красный
+            case "Фиолетовый фон":
+                return 0xFF9C27B0; // Фиолетовый
+            default:
+                return 0xFFFFFFFF; // Белый по умолчанию
+        }
     }
 
     /**
@@ -180,6 +242,10 @@ public class ShopActivity extends AppCompatActivity {
             return;
         }
         
+        // Получаем выбранный фон из настроек
+        SharedPreferences prefs = getSharedPreferences("UserPrefs", MODE_PRIVATE);
+        String selectedBackground = prefs.getString("selectedBackground", null);
+        
         TextView[] itemViews = {tvItem1, tvItem2, tvItem3, tvItem4};
         
         for (int i = 0; i < itemViews.length; i++) {
@@ -187,9 +253,16 @@ public class ShopActivity extends AppCompatActivity {
                 ShopItem item = currentItems.get(i);
                 String displayText = item.name;
                 if (item.isPurchased == 1) {
-                    displayText += " (Куплено)";
+                    if (item.name.equals(selectedBackground)) {
+                        displayText += " (Выбрано)";
+                        itemViews[i].setTextColor(getResources().getColor(R.color.primary_blue, null));
+                    } else {
+                        displayText += " (Куплено)";
+                        itemViews[i].setTextColor(getResources().getColor(R.color.text_secondary, null));
+                    }
                 } else {
                     displayText += " (" + item.price + " монет)";
+                    itemViews[i].setTextColor(getResources().getColor(R.color.black, null));
                 }
                 itemViews[i].setText(displayText);
             } else {
