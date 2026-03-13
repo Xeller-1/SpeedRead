@@ -3,22 +3,37 @@
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
 
-    <color name="primary_blue">#5B8CFF</color>
-    <color name="primary_blue_dark">#3F63E0</color>
-    <color name="primary_blue_light">#8AA9FF</color>
+    <color name="primary">#6C63FF</color>
+    <color name="primary_dark">#574FE6</color>
+    <color name="primary_light">#8B84FF</color>
 
-    <color name="accent_orange">#FF8A3D</color>
-    <color name="accent_green">#3ED3A4</color>
-    <color name="accent_purple">#9C6BFF</color>
-    <color name="accent_pink">#FF5EA8</color>
+    <color name="accent_success">#22C55E</color>
+    <color name="accent_warning">#F59E0B</color>
+    <color name="accent_error">#EF4444</color>
 
-    <color name="text_primary">#1E2238</color>
-    <color name="text_secondary">#6E7392</color>
+    <color name="background">#F8F7FF</color>
+    <color name="surface">#FFFFFF</color>
+    <color name="surface_soft">#F3F1FF</color>
 
-    <color name="background_light">#F5F7FF</color>
-    <color name="card_background">#FFFFFF</color>
-    <color name="light_gray">#EEF1FF</color>
+    <color name="text_primary">#1F2430</color>
+    <color name="text_secondary">#667085</color>
+    <color name="text_tertiary">#98A2B3</color>
 
-    <color name="coin_gold">#FFB300</color>
-    <color name="coin_gold_dark">#FF8F00</color>
+    <color name="stroke">#E4E7EC</color>
+    <color name="stroke_soft">#EEF2F6</color>
+
+    <color name="coin_gold">#F59E0B</color>
+    <color name="coin_gold_dark">#D97706</color>
+
+    <!-- Legacy aliases for existing code/resources -->
+    <color name="primary_blue">@color/primary</color>
+    <color name="primary_blue_dark">@color/primary_dark</color>
+    <color name="primary_blue_light">@color/primary_light</color>
+    <color name="accent_orange">@color/accent_warning</color>
+    <color name="accent_green">@color/accent_success</color>
+    <color name="accent_purple">@color/primary_light</color>
+    <color name="accent_pink">@color/accent_error</color>
+    <color name="background_light">@color/background</color>
+    <color name="card_background">@color/surface</color>
+    <color name="light_gray">@color/stroke_soft</color>
 </resources>

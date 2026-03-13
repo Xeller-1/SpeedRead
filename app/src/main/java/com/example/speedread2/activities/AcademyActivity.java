@@ -34,6 +34,11 @@ public class AcademyActivity extends AppCompatActivity {
     private LinearLayout containerTongueTwisters;
     private TextView tvFilterStatus;
 
+    private TextView chipAll;
+    private TextView chipEasy;
+    private TextView chipMedium;
+    private TextView chipHard;
+
     private Integer selectedDifficulty = null;
     private int selectedSort = SORT_DEFAULT;
 
@@ -48,46 +53,43 @@ public class AcademyActivity extends AppCompatActivity {
         BackgroundHelper.applyBackground(this);
 
         ImageButton btnBack = findViewById(R.id.btnBack);
-        ImageButton btnFilter = findViewById(R.id.btnFilter);
         ImageButton btnSort = findViewById(R.id.btnSort);
         tvFilterStatus = findViewById(R.id.tvFilterStatus);
         containerTongueTwisters = findViewById(R.id.containerTongueTwisters);
 
+        chipAll = findViewById(R.id.chipAll);
+        chipEasy = findViewById(R.id.chipEasy);
+        chipMedium = findViewById(R.id.chipMedium);
+        chipHard = findViewById(R.id.chipHard);
+
         btnBack.setOnClickListener(v -> getOnBackPressedDispatcher().onBackPressed());
-        btnFilter.setOnClickListener(this::showFilterMenu);
         btnSort.setOnClickListener(this::showSortMenu);
 
+        chipAll.setOnClickListener(v -> selectDifficulty(null));
+        chipEasy.setOnClickListener(v -> selectDifficulty(1));
+        chipMedium.setOnClickListener(v -> selectDifficulty(2));
+        chipHard.setOnClickListener(v -> selectDifficulty(3));
+
+        updateDifficultyChips();
         loadTongueTwisters();
     }
 
-    private void showFilterMenu(View anchorView) {
-        PopupMenu popupMenu = new PopupMenu(this, anchorView);
-        popupMenu.getMenu().add(Menu.NONE, 1, Menu.NONE, "Лёгкие");
-        popupMenu.getMenu().add(Menu.NONE, 2, Menu.NONE, "Средние");
-        popupMenu.getMenu().add(Menu.NONE, 3, Menu.NONE, "Сложные");
-        popupMenu.getMenu().add(Menu.NONE, 4, Menu.NONE, "Сбросить фильтр");
+    private void selectDifficulty(Integer difficulty) {
+        selectedDifficulty = difficulty;
+        updateDifficultyChips();
+        loadTongueTwisters();
+    }
 
-        popupMenu.setOnMenuItemClickListener(item -> {
-            switch (item.getItemId()) {
-                case 1:
-                    selectedDifficulty = 1;
-                    break;
-                case 2:
-                    selectedDifficulty = 2;
-                    break;
-                case 3:
-                    selectedDifficulty = 3;
-                    break;
-                case 4:
-                default:
-                    selectedDifficulty = null;
-                    break;
-            }
-            loadTongueTwisters();
-            return true;
-        });
+    private void updateDifficultyChips() {
+        setChipState(chipAll, selectedDifficulty == null);
+        setChipState(chipEasy, selectedDifficulty != null && selectedDifficulty == 1);
+        setChipState(chipMedium, selectedDifficulty != null && selectedDifficulty == 2);
+        setChipState(chipHard, selectedDifficulty != null && selectedDifficulty == 3);
+    }
 
-        popupMenu.show();
+    private void setChipState(TextView chip, boolean active) {
+        chip.setBackgroundResource(active ? R.drawable.bg_chip_filter_active : R.drawable.bg_chip_filter);
+        chip.setTextColor(getColor(active ? R.color.primary : R.color.text_secondary));
     }
 
     private void showSortMenu(View anchorView) {
@@ -138,8 +140,9 @@ public class AcademyActivity extends AppCompatActivity {
         if (tongueTwisters.isEmpty()) {
             TextView emptyText = new TextView(this);
             emptyText.setText("Нет скороговорок для выбранного фильтра");
-            emptyText.setTextSize(16f);
+            emptyText.setTextSize(15f);
             emptyText.setPadding(16, 32, 16, 16);
+            emptyText.setTextColor(getColor(R.color.text_secondary));
             containerTongueTwisters.addView(emptyText);
             return;
         }
@@ -157,7 +160,8 @@ public class AcademyActivity extends AppCompatActivity {
             tvTitle.setText(tongueTwister.title);
             tvContent.setText(tongueTwister.content);
             tvSounds.setText("Звуки: " + tongueTwister.sounds);
-            tvDifficulty.setText(getDifficultyText(tongueTwister.difficulty));
+
+            bindDifficultyChip(tvDifficulty, tongueTwister.difficulty);
 
             card.setOnClickListener(v -> {
                 Intent intent = new Intent(this, TongueTwisterActivity.class);
@@ -166,6 +170,31 @@ public class AcademyActivity extends AppCompatActivity {
             });
 
             containerTongueTwisters.addView(cardView);
+        }
+    }
+
+    private void bindDifficultyChip(TextView tvDifficulty, int difficulty) {
+        switch (difficulty) {
+            case 1:
+                tvDifficulty.setText("Легко");
+                tvDifficulty.setTextColor(getColor(R.color.accent_success));
+                tvDifficulty.setBackgroundResource(R.drawable.bg_chip_easy);
+                break;
+            case 2:
+                tvDifficulty.setText("Средне");
+                tvDifficulty.setTextColor(getColor(R.color.accent_warning));
+                tvDifficulty.setBackgroundResource(R.drawable.bg_chip_medium);
+                break;
+            case 3:
+                tvDifficulty.setText("Сложно");
+                tvDifficulty.setTextColor(getColor(R.color.primary_dark));
+                tvDifficulty.setBackgroundResource(R.drawable.bg_chip_hard);
+                break;
+            default:
+                tvDifficulty.setText("Уровень " + difficulty);
+                tvDifficulty.setTextColor(getColor(R.color.text_secondary));
+                tvDifficulty.setBackgroundResource(R.drawable.bg_chip_filter);
+                break;
         }
     }
 
@@ -211,18 +240,5 @@ public class AcademyActivity extends AppCompatActivity {
         }
 
         tvFilterStatus.setText("Фильтр: " + difficulty + " • Сортировка: " + sort);
-    }
-
-    private String getDifficultyText(int difficulty) {
-        switch (difficulty) {
-            case 1:
-                return "Легко";
-            case 2:
-                return "Средне";
-            case 3:
-                return "Сложно";
-            default:
-                return "Уровень " + difficulty;
-        }
     }
 }
