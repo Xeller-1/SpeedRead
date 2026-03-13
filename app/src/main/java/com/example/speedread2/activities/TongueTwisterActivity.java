@@ -3,19 +3,18 @@ package com.example.speedread2.activities;
 import android.Manifest;
 import android.animation.ObjectAnimator;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
-import android.content.SharedPreferences;
 import android.speech.RecognitionListener;
 import android.speech.RecognizerIntent;
 import android.speech.SpeechRecognizer;
 import android.text.SpannableString;
 import android.text.style.ForegroundColorSpan;
 import android.util.Log;
-import android.view.View;
 import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.ImageView;
@@ -28,6 +27,7 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
 import com.example.speedread2.R;
+import com.example.speedread2.utils.BackgroundHelper;
 import com.example.speedread2.database.AppDatabase;
 import com.example.speedread2.dao.TongueTwisterDao;
 import com.example.speedread2.dao.UserDao;
@@ -76,7 +76,7 @@ public class TongueTwisterActivity extends AppCompatActivity {
         setContentView(R.layout.activity_reading);
         
         // Применяем фон
-        applyBackground();
+        BackgroundHelper.applyBackground(this);
         
         // Инициализация БД
         AppDatabase database = AppDatabase.getInstance(this);
@@ -552,45 +552,5 @@ public class TongueTwisterActivity extends AppCompatActivity {
     /**
      * Применяет выбранный фон из настроек (по умолчанию белый)
      */
-    private void applyBackground() {
-        SharedPreferences prefs = getSharedPreferences("UserPrefs", MODE_PRIVATE);
-        String backgroundName = prefs.getString("selectedBackground", null);
-        
-        View rootView = findViewById(android.R.id.content);
-        if (rootView != null) {
-            // Для звездного фона используем drawable ресурс
-            if (backgroundName != null && backgroundName.equals("Звездный фон")) {
-                rootView.setBackgroundResource(R.drawable.splash_background);
-                return;
-            }
-            
-            int backgroundColor;
-            if (backgroundName != null) {
-                backgroundColor = getBackgroundColor(backgroundName);
-            } else {
-                backgroundColor = 0xFFFFFFFF; // Белый по умолчанию
-            }
-            
-            rootView.setBackgroundColor(backgroundColor);
-        }
-    }
-    
-    /**
-     * Возвращает цвет фона по имени
-     */
-    private int getBackgroundColor(String backgroundName) {
-        switch (backgroundName) {
-            case "Синий фон":
-                return 0xFF2196F3; // Синий
-            case "Звездный фон":
-                return 0xFF0a0e27; // Темно-синий для звездного фона (fallback)
-            case "Красный фон":
-                return 0xFFF44336; // Красный
-            case "Фиолетовый фон":
-                return 0xFF9C27B0; // Фиолетовый
-            default:
-                return 0xFFFFFFFF; // Белый по умолчанию
-        }
-    }
 }
 

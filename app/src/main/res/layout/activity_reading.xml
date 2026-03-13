@@ -6,7 +6,6 @@
     android:background="@color/white"
     android:padding="16dp">
 
-    <!-- Кнопка назад -->
     <ImageButton
         android:id="@+id/btnBack"
         android:layout_width="48dp"
@@ -17,25 +16,51 @@
         android:contentDescription="Назад"
         android:padding="8dp" />
 
-    <!-- Верхняя часть - персонаж -->
     <RelativeLayout
+        android:id="@+id/characterTrack"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
         android:layout_marginTop="16dp"
         android:layout_marginBottom="16dp">
 
+        <View
+            android:id="@+id/obstacle1"
+            android:layout_width="22dp"
+            android:layout_height="22dp"
+            android:layout_alignParentTop="true"
+            android:layout_marginTop="20dp"
+            android:layout_marginStart="95dp"
+            android:background="#FF8A65" />
+
+        <View
+            android:id="@+id/obstacle2"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:layout_centerVertical="true"
+            android:layout_marginStart="170dp"
+            android:background="#FF7043" />
+
+        <View
+            android:id="@+id/obstacle3"
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:layout_alignParentBottom="true"
+            android:layout_marginBottom="22dp"
+            android:layout_marginStart="260dp"
+            android:background="#FF5722" />
+
         <ImageView
             android:id="@+id/ivCharacter"
             android:layout_width="80dp"
             android:layout_height="80dp"
+            android:layout_alignParentStart="true"
             android:layout_centerVertical="true"
-            android:src="@drawable/stickman_face"
-            android:contentDescription="Персонаж" />
+            android:contentDescription="Персонаж"
+            android:src="@drawable/stickman_face" />
 
     </RelativeLayout>
 
-    <!-- Нижняя часть - текст и микрофон -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -46,7 +71,6 @@
         android:background="#F5F5F5"
         android:elevation="8dp">
 
-        <!-- Текущая строка текста -->
         <TextView
             android:id="@+id/tvCurrentLine"
             android:layout_width="match_parent"
@@ -62,7 +86,6 @@
             android:elevation="4dp"
             android:lineSpacingExtra="4dp" />
 
-        <!-- Кнопка микрофона -->
         <Button
             android:id="@+id/btnMicrophone"
             android:layout_width="match_parent"
@@ -74,4 +97,3 @@
     </LinearLayout>
 
 </LinearLayout>
-

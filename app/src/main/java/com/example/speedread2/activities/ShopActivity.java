@@ -13,6 +13,7 @@ import com.example.speedread2.dao.ShopItemDao;
 import com.example.speedread2.dao.UserDao;
 import com.example.speedread2.database.entities.ShopItem;
 import com.example.speedread2.database.entities.User;
+import com.example.speedread2.utils.BackgroundHelper;
 
 import java.util.List;
 
@@ -152,12 +153,14 @@ public class ShopActivity extends AppCompatActivity {
         builder.setTitle("Примерка фона: " + item.name);
         builder.setMessage("Цена: " + item.price + " монет\n\nВы хотите применить этот фон?");
         
-        // Получаем цвет фона
-        int backgroundColor = getBackgroundColor(item.name);
-        
         // Создаем View для примера
         android.view.View previewView = new android.view.View(this);
-        previewView.setBackgroundColor(backgroundColor);
+        Integer backgroundDrawable = BackgroundHelper.getBackgroundDrawable(item.name);
+        if (backgroundDrawable != null) {
+            previewView.setBackgroundResource(backgroundDrawable);
+        } else {
+            previewView.setBackgroundColor(getBackgroundColor(item.name));
+        }
         android.widget.LinearLayout.LayoutParams params = new android.widget.LinearLayout.LayoutParams(
             android.widget.LinearLayout.LayoutParams.MATCH_PARENT, 200);
         params.setMargins(32, 16, 32, 16);
