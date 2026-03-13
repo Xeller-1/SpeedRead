@@ -5,15 +5,13 @@
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:padding="16dp"
-    android:background="@color/white">
+    android:background="@drawable/bg_screen_playful">
 
-    <!-- Верхняя панель с кнопкой назад и заголовком -->
     <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="24dp">
+        android:layout_marginBottom="16dp">
 
-        <!-- Кнопка назад -->
         <ImageButton
             android:id="@+id/btnBack"
             android:layout_width="48dp"
@@ -25,105 +23,89 @@
             android:contentDescription="Назад"
             android:padding="8dp" />
 
-        <!-- Заголовок справа в углу -->
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Выберите категорию"
-            android:textSize="24sp"
+            android:text="Выбери стиль чтения"
+            android:textSize="26sp"
             android:textStyle="bold"
-            android:textColor="@color/black"
-            android:layout_alignParentEnd="true"
-            android:layout_centerVertical="true"
-            android:layout_marginEnd="16dp" />
+            android:textColor="@color/text_primary"
+            android:layout_centerInParent="true" />
 
     </RelativeLayout>
 
-    <!-- Категория: Стихи -->
     <androidx.cardview.widget.CardView
         android:id="@+id/cardPoems"
         android:layout_width="match_parent"
         android:layout_height="120dp"
-        android:layout_marginBottom="16dp"
+        android:layout_marginBottom="12dp"
         android:clickable="true"
         android:focusable="true"
         android:foreground="?android:attr/selectableItemBackground"
-        app:cardCornerRadius="8dp"
-        app:cardElevation="4dp">
+        app:cardCornerRadius="18dp"
+        app:cardElevation="6dp">
 
         <RelativeLayout
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:padding="16dp">
+            android:background="@drawable/bg_card_blue"
+            android:padding="18dp">
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Стихи"
-                android:textSize="20sp"
+                android:text="📜 Стихи"
+                android:textSize="22sp"
                 android:textStyle="bold"
-                android:textColor="@color/black"
-                android:layout_alignParentStart="true"
+                android:textColor="@color/text_primary"
                 android:layout_centerVertical="true" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="легкие уровни: до 150 слов"
-                android:textSize="12sp"
-                android:textColor="#757575"
-                android:layout_alignParentEnd="true"
-                android:layout_alignParentBottom="true"
-                android:layout_marginEnd="8dp"
-                android:layout_marginBottom="8dp" />
-
+                android:text="лёгкий ритм и плавный старт"
+                android:textSize="13sp"
+                android:textColor="@color/text_secondary"
+                android:layout_alignParentBottom="true" />
         </RelativeLayout>
-
     </androidx.cardview.widget.CardView>
 
-    <!-- Категория: Басни -->
     <androidx.cardview.widget.CardView
         android:id="@+id/cardFables"
         android:layout_width="match_parent"
         android:layout_height="120dp"
-        android:layout_marginBottom="16dp"
+        android:layout_marginBottom="12dp"
         android:clickable="true"
         android:focusable="true"
         android:foreground="?android:attr/selectableItemBackground"
-        app:cardCornerRadius="8dp"
-        app:cardElevation="4dp">
+        app:cardCornerRadius="18dp"
+        app:cardElevation="6dp">
 
         <RelativeLayout
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:padding="16dp">
+            android:background="@drawable/bg_card_purple"
+            android:padding="18dp">
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Басни"
-                android:textSize="20sp"
+                android:text="🦊 Басни"
+                android:textSize="22sp"
                 android:textStyle="bold"
-                android:textColor="@color/black"
-                android:layout_alignParentStart="true"
+                android:textColor="@color/text_primary"
                 android:layout_centerVertical="true" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="средней степени тяжести: 200-400 слов"
-                android:textSize="12sp"
-                android:textColor="#757575"
-                android:layout_alignParentEnd="true"
-                android:layout_alignParentBottom="true"
-                android:layout_marginEnd="8dp"
-                android:layout_marginBottom="8dp" />
-
+                android:text="средняя сложность и выразительность"
+                android:textSize="13sp"
+                android:textColor="@color/text_secondary"
+                android:layout_alignParentBottom="true" />
         </RelativeLayout>
-
     </androidx.cardview.widget.CardView>
 
-    <!-- Категория: Рассказы -->
     <androidx.cardview.widget.CardView
         android:id="@+id/cardStories"
         android:layout_width="match_parent"
@@ -131,37 +113,32 @@
         android:clickable="true"
         android:focusable="true"
         android:foreground="?android:attr/selectableItemBackground"
-        app:cardCornerRadius="8dp"
-        app:cardElevation="4dp">
+        app:cardCornerRadius="18dp"
+        app:cardElevation="6dp">
 
         <RelativeLayout
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:padding="16dp">
+            android:background="@drawable/bg_card_orange"
+            android:padding="18dp">
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Рассказы"
-                android:textSize="20sp"
+                android:text="📚 Рассказы"
+                android:textSize="22sp"
                 android:textStyle="bold"
-                android:textColor="@color/black"
-                android:layout_alignParentStart="true"
+                android:textColor="@color/text_primary"
                 android:layout_centerVertical="true" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="сложные уровни: 400-600 слов"
-                android:textSize="12sp"
-                android:textColor="#757575"
-                android:layout_alignParentEnd="true"
-                android:layout_alignParentBottom="true"
-                android:layout_marginEnd="8dp"
-                android:layout_marginBottom="8dp" />
-
+                android:text="максимум концентрации и скорости"
+                android:textSize="13sp"
+                android:textColor="@color/text_secondary"
+                android:layout_alignParentBottom="true" />
         </RelativeLayout>
-
     </androidx.cardview.widget.CardView>
 
 </LinearLayout>
