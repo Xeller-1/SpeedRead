@@ -214,7 +214,8 @@ public class MainActivity extends AppCompatActivity {
         resetButton(btnProfile);
 
         // Подсвечиваем активную кнопку синим цветом и полной непрозрачностью
-        activeButton.setTextColor(getResources().getColor(R.color.primary_blue, null));
+        activeButton.setTextColor(getResources().getColor(R.color.primary, null));
+        activeButton.setBackgroundResource(R.drawable.bg_nav_item_active);
         activeButton.setAlpha(1.0f);
     }
 
@@ -224,7 +225,8 @@ public class MainActivity extends AppCompatActivity {
      * @param button - кнопка, которую нужно сбросить
      */
     private void resetButton(Button button) {
-        button.setTextColor(getResources().getColor(R.color.black, null));
-        button.setAlpha(0.6f);
+        button.setTextColor(getResources().getColor(R.color.text_secondary, null));
+        button.setBackgroundResource(android.R.color.transparent);
+        button.setAlpha(1.0f);
     }
 }

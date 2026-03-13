@@ -73,6 +73,7 @@ public class ReadingActivity extends AppCompatActivity {
     private View characterTrack;
     private Handler speechHandler = new Handler(Looper.getMainLooper());
     private Runnable speechTimeoutRunnable;
+    private long lastRecognitionRestartMs = 0L;
     
     // Статистика чтения
     private long readingStartTime = 0;
@@ -226,6 +227,10 @@ public class ReadingActivity extends AppCompatActivity {
             speechRecognizerIntent.putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true);
             speechRecognizerIntent.putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1);
             speechRecognizerIntent.putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE, getPackageName());
+            speechRecognizerIntent.putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, true);
+            speechRecognizerIntent.putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, 700);
+            speechRecognizerIntent.putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS, 500);
+            speechRecognizerIntent.putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_MINIMUM_LENGTH_MILLIS, 1000);
             
             // Создаем listener как переменную для переиспользования
             RecognitionListener recognitionListener = new RecognitionListener() {
@@ -312,7 +317,7 @@ public class ReadingActivity extends AppCompatActivity {
                                         Log.e("ReadingActivity", "Ошибка пересоздания SpeechRecognizer", e);
                                     }
                                 }
-                            }, 500);
+                            }, 220);
                             return;
                         }
                         
@@ -379,7 +384,7 @@ public class ReadingActivity extends AppCompatActivity {
                                     if (isListening) {
                                         moveToNextLine();
                                     }
-                                }, matchQuality >= 60 ? 800 : 1200);
+                                }, matchQuality >= 60 ? 220 : 380);
                             } else {
                                 // Плохое совпадение - продолжаем слушать
                                 Log.d("ReadingActivity", "Плохое совпадение (" + matchQuality + "%), продолжаем слушать");
@@ -389,15 +394,7 @@ public class ReadingActivity extends AppCompatActivity {
                                     }
                                 });
                                 if (isListening && speechRecognizer != null) {
-                                    speechHandler.postDelayed(() -> {
-                                        if (isListening && speechRecognizer != null) {
-                                            try {
-                                                speechRecognizer.startListening(speechRecognizerIntent);
-                                            } catch (Exception e) {
-                                                Log.e("ReadingActivity", "Ошибка перезапуска", e);
-                                            }
-                                        }
-                                    }, 1500);
+                                    restartListeningSafely(220);
                                 }
                             }
                         } else {
@@ -410,15 +407,7 @@ public class ReadingActivity extends AppCompatActivity {
                             });
                             // Продолжаем слушать
                             if (isListening && speechRecognizer != null) {
-                                speechHandler.postDelayed(() -> {
-                                    if (isListening && speechRecognizer != null) {
-                                        try {
-                                            speechRecognizer.startListening(speechRecognizerIntent);
-                                        } catch (Exception e) {
-                                            Log.e("ReadingActivity", "Ошибка перезапуска", e);
-                                        }
-                                    }
-                                }, 1500);
+                                restartListeningSafely(220);
                             }
                         }
                     }
@@ -814,12 +803,33 @@ public class ReadingActivity extends AppCompatActivity {
                         });
                     }
                 }
-            }, 200);
+            }, 80);
         } else {
             Log.w("ReadingActivity", "Уже слушаем: isListening=" + isListening);
         }
     }
     
+    private void restartListeningSafely(long delayMs) {
+        speechHandler.postDelayed(() -> {
+            if (isListening && speechRecognizer != null) {
+                long now = System.currentTimeMillis();
+                if (now - lastRecognitionRestartMs < 150) {
+                    return;
+                }
+                try {
+                    speechRecognizer.cancel();
+                } catch (Exception ignored) {
+                }
+                try {
+                    speechRecognizer.startListening(speechRecognizerIntent);
+                    lastRecognitionRestartMs = now;
+                } catch (Exception e) {
+                    Log.e("ReadingActivity", "Ошибка перезапуска", e);
+                }
+            }
+        }, delayMs);
+    }
+
     private void stopListening() {
         if (speechRecognizer != null && isListening) {
             isListening = false;
@@ -843,7 +853,7 @@ public class ReadingActivity extends AppCompatActivity {
                             Log.e("ReadingActivity", "Ошибка перезапуска", e);
                         }
                     }
-                }, 500);
+                }, 180);
             }
         } else {
             // Текст закончен - показываем результаты
@@ -867,8 +877,6 @@ public class ReadingActivity extends AppCompatActivity {
             float maxX = Math.max(120f, characterTrack.getWidth() - ivCharacter.getWidth() - 24f);
             float laneCenter = Math.max(0f, (characterTrack.getHeight() - ivCharacter.getHeight()) / 2f);
             float laneTop = Math.max(0f, laneCenter - 55f);
-            float laneBottom = Math.min(Math.max(0f, characterTrack.getHeight() - ivCharacter.getHeight() - 10f), laneCenter + 55f);
-
             ObjectAnimator moveX = ObjectAnimator.ofFloat(ivCharacter, "translationX", 0f, maxX);
             moveX.setDuration(4200);
             moveX.setRepeatCount(ValueAnimator.INFINITE);
@@ -878,10 +886,11 @@ public class ReadingActivity extends AppCompatActivity {
             PropertyValuesHolder pvhY = PropertyValuesHolder.ofKeyframe(
                 "translationY",
                 Keyframe.ofFloat(0f, laneCenter),
-                Keyframe.ofFloat(0.20f, laneTop),
-                Keyframe.ofFloat(0.42f, laneCenter),
-                Keyframe.ofFloat(0.65f, laneBottom),
-                Keyframe.ofFloat(0.82f, laneCenter),
+                Keyframe.ofFloat(0.18f, laneTop),
+                Keyframe.ofFloat(0.36f, laneTop),
+                Keyframe.ofFloat(0.52f, laneCenter),
+                Keyframe.ofFloat(0.70f, laneTop),
+                Keyframe.ofFloat(0.88f, laneCenter),
                 Keyframe.ofFloat(1f, laneCenter)
             );
             ObjectAnimator moveY = ObjectAnimator.ofPropertyValuesHolder(ivCharacter, pvhY);

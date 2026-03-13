@@ -12,53 +12,68 @@
         android:layout_weight="1" />
 
     <LinearLayout
+        android:id="@+id/bottomNavContainer"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_marginStart="20dp"
+        android:layout_marginEnd="20dp"
+        android:layout_marginBottom="16dp"
+        android:background="@drawable/bg_nav_container"
+        android:elevation="4dp"
+        android:gravity="center"
         android:orientation="horizontal"
-        android:background="@drawable/bg_panel_soft"
-        android:elevation="10dp"
-        android:padding="10dp"
-        android:layout_margin="10dp"
-        android:gravity="center">
+        android:padding="8dp">
 
         <Button
             android:id="@+id/btnRaces"
+            style="@style/Widget.MaterialComponents.Button.TextButton"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="Забеги"
-            android:textSize="12sp"
+            android:background="@drawable/bg_nav_item_active"
             android:drawableTop="@drawable/ic_gamepad"
-            android:drawablePadding="6dp"
-            android:background="@android:color/transparent"
-            android:textColor="@color/text_primary"
-            style="@style/Widget.MaterialComponents.Button.TextButton" />
+            android:drawablePadding="4dp"
+            android:fontFamily="sans-serif-medium"
+            android:paddingTop="8dp"
+            android:paddingBottom="8dp"
+            android:text="Забеги"
+            android:textAllCaps="false"
+            android:textColor="@color/primary"
+            android:textSize="12sp" />
 
         <Button
             android:id="@+id/btnAcademy"
+            style="@style/Widget.MaterialComponents.Button.TextButton"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="Академия"
-            android:textSize="12sp"
-            android:drawableTop="@drawable/ic_graduation_cap"
-            android:drawablePadding="6dp"
             android:background="@android:color/transparent"
-            android:textColor="@color/text_primary"
-            style="@style/Widget.MaterialComponents.Button.TextButton" />
+            android:drawableTop="@drawable/ic_graduation_cap"
+            android:drawablePadding="4dp"
+            android:fontFamily="sans-serif-medium"
+            android:paddingTop="8dp"
+            android:paddingBottom="8dp"
+            android:text="Академия"
+            android:textAllCaps="false"
+            android:textColor="@color/text_secondary"
+            android:textSize="12sp" />
 
         <Button
             android:id="@+id/btnProfile"
+            style="@style/Widget.MaterialComponents.Button.TextButton"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="Профиль"
-            android:textSize="12sp"
-            android:drawableTop="@drawable/ic_profile_avatar"
-            android:drawablePadding="6dp"
             android:background="@android:color/transparent"
-            android:textColor="@color/text_primary"
-            style="@style/Widget.MaterialComponents.Button.TextButton" />
+            android:drawableTop="@drawable/ic_profile_avatar"
+            android:drawablePadding="4dp"
+            android:fontFamily="sans-serif-medium"
+            android:paddingTop="8dp"
+            android:paddingBottom="8dp"
+            android:text="Профиль"
+            android:textAllCaps="false"
+            android:textColor="@color/text_secondary"
+            android:textSize="12sp" />
 
     </LinearLayout>
 
