@@ -1,10 +1,10 @@
 package com.example.speedread2.activities;
 
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.ImageButton;
-import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.cardview.widget.CardView;
@@ -38,6 +38,8 @@ public class PoemsActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_poems);
+
+        applyBackground();
 
         // Инициализация базы данных
         database = AppDatabase.getInstance(this);
@@ -106,4 +108,41 @@ public class PoemsActivity extends AppCompatActivity {
             poems = textDao.getTextsByCategory(poemsCategory.id);
         }
     }
+
+    private void applyBackground() {
+        View rootView = findViewById(android.R.id.content).getRootView();
+
+        SharedPreferences prefs = getSharedPreferences("UserPrefs", MODE_PRIVATE);
+        String backgroundName = prefs.getString("selectedBackground", null);
+
+        if (backgroundName != null && backgroundName.equals("Звездный фон")) {
+            rootView.setBackgroundResource(R.drawable.splash_background);
+            return;
+        }
+
+        int backgroundColor;
+        if (backgroundName != null) {
+            backgroundColor = getBackgroundColor(backgroundName);
+        } else {
+            backgroundColor = 0xFFFFFFFF;
+        }
+
+        rootView.setBackgroundColor(backgroundColor);
+    }
+
+    private int getBackgroundColor(String backgroundName) {
+        switch (backgroundName) {
+            case "Синий фон":
+                return 0xFF2196F3;
+            case "Звездный фон":
+                return 0xFF0a0e27;
+            case "Красный фон":
+                return 0xFFF44336;
+            case "Фиолетовый фон":
+                return 0xFF9C27B0;
+            default:
+                return 0xFFFFFFFF;
+        }
+    }
+
 }

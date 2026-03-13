@@ -186,6 +186,9 @@ public class DatabaseInitializer {
             Text kashankaText = null;
             Text voronaText = null;
             Text strekozaText = null;
+            Text berezaText = null;
+            Text zimneeUtroText = null;
+            Text lukomoryeText = null;
             
             for (Text text : texts) {
                 // Убеждаемся, что текст уже в БД (id > 0)
@@ -195,8 +198,39 @@ public class DatabaseInitializer {
                 else if ("Каштанка".equals(text.title)) kashankaText = text;
                 else if ("Ворона и Лисица".equals(text.title)) voronaText = text;
                 else if ("Стрекоза и Муравей".equals(text.title)) strekozaText = text;
+                else if ("Белая берёза".equals(text.title)) berezaText = text;
+                else if ("Зимнее утро".equals(text.title)) zimneeUtroText = text;
+                else if ("У лукоморья дуб зелёный".equals(text.title)) lukomoryeText = text;
             }
             
+            // Вопросы для стихов
+            if (berezaText != null) {
+                questions.add(new Question(berezaText.id,
+                    "Что принакрыло березу?",
+                    "Снег",
+                    "Дождь",
+                    "Листва",
+                    "Иней"));
+            }
+
+            if (zimneeUtroText != null) {
+                questions.add(new Question(zimneeUtroText.id,
+                    "Какая погода описана в начале?",
+                    "Мороз и солнце",
+                    "Дождь и ветер",
+                    "Туман",
+                    "Гроза"));
+            }
+
+            if (lukomoryeText != null) {
+                questions.add(new Question(lukomoryeText.id,
+                    "Кто ходит по цепи кругом?",
+                    "Кот учёный",
+                    "Руслан",
+                    "Богатырь",
+                    "Леший"));
+            }
+
             // Вопросы для "Воробей"
             if (vorbeyText != null) {
                 questions.add(new Question(vorbeyText.id,

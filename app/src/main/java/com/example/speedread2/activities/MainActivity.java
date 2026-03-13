@@ -187,6 +187,9 @@ public class MainActivity extends AppCompatActivity {
         categorySelectionContent = inflater.inflate(R.layout.activity_races_category_selection, contentContainer, false);
         contentContainer.addView(categorySelectionContent);
 
+        // Применяем выбранный фон
+        applyBackground(categorySelectionContent);
+
         // Инициализация элементов экрана выбора категорий
         ImageButton btnBack = categorySelectionContent.findViewById(R.id.btnBack);
         CardView cardPoems = categorySelectionContent.findViewById(R.id.cardPoems);
