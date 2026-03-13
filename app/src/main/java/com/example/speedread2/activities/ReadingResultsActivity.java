@@ -1,7 +1,6 @@
 package com.example.speedread2.activities;
 
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.widget.Button;
 import android.widget.ImageButton;
@@ -13,7 +12,6 @@ import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.speedread2.R;
-import com.example.speedread2.dao.UserDao;
 import com.example.speedread2.database.AppDatabase;
 import com.example.speedread2.dao.QuestionDao;
 import com.example.speedread2.database.entities.Question;
@@ -37,6 +35,7 @@ public class ReadingResultsActivity extends AppCompatActivity {
     private RadioButton rbOption1;
     private RadioButton rbOption2;
     private RadioButton rbOption3;
+    private RadioButton rbOption4;
     private Button btnNextQuestion;
     private Button btnFinish;
     private ImageButton btnBack;
@@ -68,6 +67,7 @@ public class ReadingResultsActivity extends AppCompatActivity {
         rbOption1 = findViewById(R.id.rbOption1);
         rbOption2 = findViewById(R.id.rbOption2);
         rbOption3 = findViewById(R.id.rbOption3);
+        rbOption4 = findViewById(R.id.rbOption4);
         btnNextQuestion = findViewById(R.id.btnNextQuestion);
         btnFinish = findViewById(R.id.btnFinish);
         btnBack = findViewById(R.id.btnBack);
@@ -85,19 +85,21 @@ public class ReadingResultsActivity extends AppCompatActivity {
         android.content.SharedPreferences prefs = getSharedPreferences("UserPrefs", MODE_PRIVATE);
         int currentUserId = prefs.getInt("currentUserId", -1);
 
-        UserDao userDao = database.userDao();
         User user = database.userDao().getUserById(currentUserId);
+        if (user != null) {
+            var stats = database.userStatsDao().getUserStats(user.id);
+            if (stats != null) {
+                stats.clarity = Math.max(clarity, stats.clarity);
+                stats.readingSpeed = Math.max(readingSpeed, stats.readingSpeed);
+                stats.expression = Math.max(stats.expression, 0);
+                database.userStatsDao().updateUserStats(stats);
+            }
 
-        var stats = database.userStatsDao().getUserStats(user.id);
-        stats.clarity = Math.max(clarity, stats.clarity);
-        stats.readingSpeed = Math.max(readingSpeed, stats.readingSpeed);
-        stats.expression = Math.max(stats.expression, 0);
-
-        database.userStatsDao().updateUserStats(stats);
-
-
-        var reward = textDao.getTextById(textId).rewardCoins;
-        database.userDao().updateCoins(currentUserId, user.coins + reward);
+            var completedText = textDao.getTextById(textId);
+            if (completedText != null) {
+                database.userDao().updateCoins(currentUserId, user.coins + completedText.rewardCoins);
+            }
+        }
 
         
         if (questions == null || questions.isEmpty()) {
@@ -118,7 +120,9 @@ public class ReadingResultsActivity extends AppCompatActivity {
             showQuestion(0);
             
             btnNextQuestion.setOnClickListener(v -> {
-                checkAnswer();
+                if (!checkAnswer()) {
+                    return;
+                }
                 if (currentQuestionIndex < questions.size() - 1) {
                     currentQuestionIndex++;
                     showQuestion(currentQuestionIndex);
@@ -147,6 +151,7 @@ public class ReadingResultsActivity extends AppCompatActivity {
         rbOption1.setText(optionsList.get(0));
         rbOption2.setText(optionsList.get(1));
         rbOption3.setText(optionsList.get(2));
+        rbOption4.setText(optionsList.get(3));
         
         rgAnswers.clearCheck();
         
@@ -157,11 +162,11 @@ public class ReadingResultsActivity extends AppCompatActivity {
         }
     }
     
-    private void checkAnswer() {
+    private boolean checkAnswer() {
         int selectedId = rgAnswers.getCheckedRadioButtonId();
         if (selectedId == -1) {
             Toast.makeText(this, "Выберите ответ", Toast.LENGTH_SHORT).show();
-            return;
+            return false;
         }
         
         RadioButton selectedRb = findViewById(selectedId);
@@ -170,6 +175,8 @@ public class ReadingResultsActivity extends AppCompatActivity {
         if (selectedRb.getText().toString().equals(question.correctAnswer)) {
             correctAnswers++;
         }
+
+        return true;
     }
     
     private void showFinalResults() {
@@ -202,4 +209,3 @@ public class ReadingResultsActivity extends AppCompatActivity {
         Toast.makeText(this, "Правильных ответов: " + correctAnswers + " из " + questions.size(), Toast.LENGTH_SHORT).show();
     }
 }
-

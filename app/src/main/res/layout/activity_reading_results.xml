@@ -140,6 +140,14 @@
             android:textSize="16sp"
             android:padding="12dp" />
 
+        <RadioButton
+            android:id="@+id/rbOption4"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Вариант 4"
+            android:textSize="16sp"
+            android:padding="12dp" />
+
     </RadioGroup>
 
     <Button
@@ -161,4 +169,3 @@
 </LinearLayout>
 
 </ScrollView>
-
