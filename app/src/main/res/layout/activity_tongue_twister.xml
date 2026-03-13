@@ -3,7 +3,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="@color/white"
+    android:background="@drawable/bg_screen_playful"
     android:padding="16dp">
 
     <ImageButton
@@ -27,14 +27,14 @@
             android:id="@+id/tvCurrentLine"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:background="@color/white"
+            android:background="@drawable/bg_panel_soft"
             android:elevation="4dp"
             android:gravity="center"
             android:lineSpacingExtra="4dp"
             android:minHeight="180dp"
             android:padding="20dp"
             android:text="Нажмите кнопку, чтобы начать чтение скороговорки"
-            android:textColor="@color/black"
+            android:textColor="@color/text_primary"
             android:textSize="22sp"
             android:textStyle="bold" />
 

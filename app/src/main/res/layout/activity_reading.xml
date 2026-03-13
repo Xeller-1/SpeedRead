@@ -3,7 +3,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="@color/white"
+    android:background="@drawable/bg_screen_playful"
     android:padding="16dp">
 
     <ImageButton
@@ -68,7 +68,7 @@
         android:padding="16dp"
         android:paddingBottom="24dp"
         android:layout_marginTop="16dp"
-        android:background="#F5F5F5"
+        android:background="@drawable/bg_panel_soft"
         android:elevation="8dp">
 
         <TextView

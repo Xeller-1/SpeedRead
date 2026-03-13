@@ -3,28 +3,23 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/white"
-    android:paddingStart="16dp"
-    android:paddingTop="16dp"
-    android:paddingEnd="16dp"
-    android:paddingBottom="24dp">
+    android:background="@drawable/bg_screen_playful"
+    android:padding="16dp">
 
     <LinearLayout
         android:id="@+id/coinsLayout"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
+        android:background="@drawable/bg_coin_pill"
         android:gravity="center_vertical"
-        android:background="#FFF9C4"
-        android:padding="8dp"
-        android:paddingStart="12dp"
-        android:paddingEnd="12dp"
+        android:orientation="horizontal"
+        android:padding="10dp"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent">
 
         <ImageView
-            android:layout_width="24dp"
-            android:layout_height="24dp"
+            android:layout_width="22dp"
+            android:layout_height="22dp"
             android:layout_marginEnd="8dp"
             android:src="@drawable/ic_coin" />
 
@@ -33,41 +28,63 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="0"
-            android:textColor="#FF8C00"
-            android:textSize="16sp"
+            android:textColor="@color/coin_gold_dark"
+            android:textSize="17sp"
             android:textStyle="bold" />
     </LinearLayout>
+
+    <TextView
+        android:id="@+id/tvRacesTitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Скоростной забег"
+        android:textColor="@color/text_primary"
+        android:textSize="28sp"
+        android:textStyle="bold"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/coinsLayout"
+        android:layout_marginTop="20dp"/>
 
     <ImageView
         android:id="@+id/ivCharacter"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        android:layout_marginTop="24dp"
+        android:layout_marginTop="16dp"
         android:background="@drawable/circle_avatar"
         android:clipToOutline="true"
-        android:padding="4dp"
+        android:padding="6dp"
         android:scaleType="centerInside"
         android:src="@drawable/stickman_face"
         app:layout_constraintDimensionRatio="1:1"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHeight_default="percent"
-        app:layout_constraintHeight_percent="0.32"
+        app:layout_constraintHeight_percent="0.34"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/coinsLayout" />
+        app:layout_constraintTop_toBottomOf="@id/tvRacesTitle" />
+
+    <TextView
+        android:id="@+id/tvRacesSubtitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Прокачивай скорость, четкость и реакцию"
+        android:textColor="@color/text_secondary"
+        android:textSize="14sp"
+        app:layout_constraintTop_toBottomOf="@id/ivCharacter"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginTop="8dp"/>
 
     <Button
         android:id="@+id/btnPlay"
         style="@style/ButtonModern"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginTop="20dp"
-        android:layout_marginBottom="16dp"
-        android:maxWidth="320dp"
-        android:text="Играть"
+        android:layout_marginTop="18dp"
+        android:maxWidth="340dp"
+        android:text="⚡ Начать забег"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/ivCharacter"
-        app:layout_constraintVertical_bias="0.0" />
+        app:layout_constraintTop_toBottomOf="@id/tvRacesSubtitle" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

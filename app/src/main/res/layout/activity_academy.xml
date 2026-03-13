@@ -4,7 +4,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="@color/white">
+    android:background="@drawable/bg_screen_playful">
 
     <RelativeLayout
         android:layout_width="match_parent"
@@ -32,10 +32,10 @@
 
             <ImageButton
                 android:id="@+id/btnFilter"
-                android:layout_width="36dp"
-                android:layout_height="36dp"
+                android:layout_width="38dp"
+                android:layout_height="38dp"
                 android:layout_marginEnd="10dp"
-                android:background="?android:attr/selectableItemBackgroundBorderless"
+                android:background="@drawable/bg_panel_soft"
                 android:contentDescription="Фильтр"
                 android:padding="6dp"
                 android:src="@android:drawable/ic_menu_sort_by_size" />
@@ -44,7 +44,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Скороговорки"
-                android:textColor="@color/black"
+                android:textColor="@color/text_primary"
                 android:textSize="28sp"
                 android:textStyle="bold" />
 
