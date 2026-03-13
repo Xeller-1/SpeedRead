@@ -162,15 +162,35 @@ public class ShopActivity extends AppCompatActivity {
             previewView.setBackgroundColor(getBackgroundColor(item.name));
         }
         android.widget.LinearLayout.LayoutParams params = new android.widget.LinearLayout.LayoutParams(
-            android.widget.LinearLayout.LayoutParams.MATCH_PARENT, 200);
-        params.setMargins(32, 16, 32, 16);
+            android.widget.LinearLayout.LayoutParams.MATCH_PARENT, 320);
+        params.setMargins(24, 16, 24, 16);
         previewView.setLayoutParams(params);
-        
+
+        androidx.cardview.widget.CardView previewCard = new androidx.cardview.widget.CardView(this);
+        previewCard.setRadius(24f);
+        previewCard.setCardElevation(8f);
+        previewCard.setUseCompatPadding(true);
+        previewCard.addView(previewView);
+
+        android.widget.TextView previewTitle = new android.widget.TextView(this);
+        previewTitle.setText("Предпросмотр фона");
+        previewTitle.setTextSize(18f);
+        previewTitle.setTextColor(0xFF1A1A1A);
+        previewTitle.setPadding(32, 8, 32, 8);
+
+        android.widget.TextView previewHint = new android.widget.TextView(this);
+        previewHint.setText("После покупки этот фон будет использоваться на игровых экранах.");
+        previewHint.setTextSize(13f);
+        previewHint.setTextColor(0xFF666666);
+        previewHint.setPadding(32, 0, 32, 8);
+
         android.widget.LinearLayout layout = new android.widget.LinearLayout(this);
         layout.setOrientation(android.widget.LinearLayout.VERTICAL);
-        layout.setPadding(32, 32, 32, 16);
-        layout.addView(previewView);
-        
+        layout.setPadding(12, 16, 12, 8);
+        layout.addView(previewTitle);
+        layout.addView(previewCard);
+        layout.addView(previewHint);
+
         builder.setView(layout);
         
         builder.setPositiveButton("Купить и применить", (dialog, which) -> {

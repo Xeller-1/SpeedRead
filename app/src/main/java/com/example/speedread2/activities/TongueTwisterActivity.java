@@ -1,7 +1,6 @@
 package com.example.speedread2.activities;
 
 import android.Manifest;
-import android.animation.ObjectAnimator;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
@@ -17,7 +16,6 @@ import android.text.style.ForegroundColorSpan;
 import android.util.Log;
 import android.widget.Button;
 import android.widget.ImageButton;
-import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -50,7 +48,6 @@ public class TongueTwisterActivity extends AppCompatActivity {
     private String[] words; // Массив слов скороговорки
     
     private TextView tvCurrentLine;
-    private ImageView ivCharacter;
     private Button btnMicrophone;
     private ImageButton btnBack;
     
@@ -62,7 +59,6 @@ public class TongueTwisterActivity extends AppCompatActivity {
     private boolean isCompleted = false;
     private boolean isRewardGiven = false;
     
-    private ObjectAnimator characterAnimator;
     private Handler speechHandler = new Handler(Looper.getMainLooper());
     
     // Цвета для подсветки
@@ -73,7 +69,7 @@ public class TongueTwisterActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_reading);
+        setContentView(R.layout.activity_tongue_twister);
         
         // Применяем фон
         BackgroundHelper.applyBackground(this);
@@ -104,7 +100,6 @@ public class TongueTwisterActivity extends AppCompatActivity {
         
         // Инициализация UI
         tvCurrentLine = findViewById(R.id.tvCurrentLine);
-        ivCharacter = findViewById(R.id.ivCharacter);
         btnMicrophone = findViewById(R.id.btnMicrophone);
         btnBack = findViewById(R.id.btnBack);
         
@@ -164,7 +159,6 @@ public class TongueTwisterActivity extends AppCompatActivity {
                 public void onBeginningOfSpeech() {
                     Log.d("TongueTwisterActivity", "Начало речи");
                     isSpeaking = true;
-                    startCharacterAnimation();
                 }
                 
                 @Override
@@ -179,13 +173,11 @@ public class TongueTwisterActivity extends AppCompatActivity {
                 public void onEndOfSpeech() {
                     Log.d("TongueTwisterActivity", "Конец речи");
                     isSpeaking = false;
-                    stopCharacterAnimation();
                 }
                 
                 @Override
                 public void onError(int error) {
                     isSpeaking = false;
-                    stopCharacterAnimation();
                     String errorMessage = getErrorText(error);
                     Log.e("TongueTwisterActivity", "Ошибка распознавания: " + errorMessage);
                     
@@ -383,26 +375,6 @@ public class TongueTwisterActivity extends AppCompatActivity {
         }
     }
     
-    private void startCharacterAnimation() {
-        if (ivCharacter == null || characterAnimator != null) return;
-        
-        characterAnimator = ObjectAnimator.ofFloat(ivCharacter, "translationX", 0f, 50f, -50f, 0f);
-        characterAnimator.setDuration(500);
-        characterAnimator.setRepeatCount(ObjectAnimator.INFINITE);
-        characterAnimator.setInterpolator(new android.view.animation.LinearInterpolator());
-        characterAnimator.start();
-    }
-    
-    private void stopCharacterAnimation() {
-        if (characterAnimator != null) {
-            characterAnimator.cancel();
-            characterAnimator = null;
-        }
-        if (ivCharacter != null) {
-            ivCharacter.setTranslationX(0f);
-        }
-    }
-    
     private void startReading() {
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.RECORD_AUDIO}, PERMISSION_REQUEST_CODE);
@@ -447,7 +419,6 @@ public class TongueTwisterActivity extends AppCompatActivity {
             }
         }
         isListening = false;
-        stopCharacterAnimation();
     }
     
     private void handleSuccessfulReading() {
@@ -532,7 +503,6 @@ public class TongueTwisterActivity extends AppCompatActivity {
         if (speechHandler != null) {
             speechHandler.removeCallbacksAndMessages(null);
         }
-        stopCharacterAnimation();
     }
     
     @Override
