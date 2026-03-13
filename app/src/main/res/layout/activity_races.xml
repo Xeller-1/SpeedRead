@@ -1,65 +1,73 @@
 <?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/white">
+    android:background="@color/white"
+    android:paddingStart="16dp"
+    android:paddingTop="16dp"
+    android:paddingEnd="16dp"
+    android:paddingBottom="24dp">
 
-    <!-- Монетки в верхнем левом углу -->
     <LinearLayout
         android:id="@+id/coinsLayout"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_alignParentTop="true"
-        android:layout_alignParentStart="true"
-        android:layout_margin="16dp"
         android:orientation="horizontal"
         android:gravity="center_vertical"
         android:background="#FFF9C4"
         android:padding="8dp"
         android:paddingStart="12dp"
-        android:paddingEnd="12dp">
-        
+        android:paddingEnd="12dp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
+
         <ImageView
             android:layout_width="24dp"
             android:layout_height="24dp"
-            android:src="@drawable/ic_coin"
-            android:layout_marginEnd="8dp" />
-            
+            android:layout_marginEnd="8dp"
+            android:src="@drawable/ic_coin" />
+
         <TextView
             android:id="@+id/tvCoins"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="0"
+            android:textColor="#FF8C00"
             android:textSize="16sp"
-            android:textStyle="bold"
-            android:textColor="#FF8C00" />
+            android:textStyle="bold" />
     </LinearLayout>
 
-    <!-- Кнопка Играть немного ниже середины экрана -->
-    <Button
-        android:id="@+id/btnPlay"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_centerHorizontal="true"
-        android:layout_centerVertical="true"
-        android:layout_marginTop="80dp"
-        android:text="Играть"
-        android:minWidth="200dp"
-        style="@style/ButtonModern" />
-
-    <!-- Круг персонажа немного ниже середины экрана, над кнопкой -->
     <ImageView
         android:id="@+id/ivCharacter"
-        android:layout_width="200dp"
-        android:layout_height="200dp"
-        android:layout_centerHorizontal="true"
-        android:layout_above="@+id/btnPlay"
-        android:layout_marginBottom="32dp"
-        android:src="@drawable/stickman_face"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_marginTop="24dp"
         android:background="@drawable/circle_avatar"
+        android:clipToOutline="true"
         android:padding="4dp"
         android:scaleType="centerInside"
-        android:clipToOutline="true" />
+        android:src="@drawable/stickman_face"
+        app:layout_constraintDimensionRatio="1:1"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHeight_default="percent"
+        app:layout_constraintHeight_percent="0.32"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/coinsLayout" />
 
-</RelativeLayout>
+    <Button
+        android:id="@+id/btnPlay"
+        style="@style/ButtonModern"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="20dp"
+        android:layout_marginBottom="16dp"
+        android:maxWidth="320dp"
+        android:text="Играть"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/ivCharacter"
+        app:layout_constraintVertical_bias="0.0" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>
