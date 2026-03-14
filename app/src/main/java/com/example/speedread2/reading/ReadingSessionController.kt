@@ -27,9 +27,15 @@ class ReadingSessionController(
     data class ReadingSessionState(
         val currentText: String = "",
         val tokens: List<TokenUnit> = emptyList(),
+        val mode: ReadingMode = ReadingMode.STORY,
         val progress: TextAligner.AlignmentState? = null,
         val microphoneState: MicrophoneState = MicrophoneState.IDLE,
         val finalReadingScore: Int = 0,
+        val coveragePercent: Int = 0,
+        val accuracyPercent: Int = 0,
+        val fluencyScore: Int = 0,
+        val completionScore: Int = 0,
+        val readingScore: Int = 0,
         val lastPartialText: String = "",
         val lastFinalText: String = "",
         val errorMessage: String? = null
@@ -37,11 +43,21 @@ class ReadingSessionController(
 
     private val scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private var aligner: TextAligner? = null
-    private var currentConfig: SpeechEngine.Config = SpeechEngine.Config()
     private var started = false
+    private var mode: ReadingMode = ReadingMode.STORY
 
     private val _state = MutableStateFlow(ReadingSessionState())
     val state: StateFlow<ReadingSessionState> = _state.asStateFlow()
+
+    fun setMode(readingMode: ReadingMode) {
+        mode = readingMode
+        _state.update { it.copy(mode = readingMode) }
+
+        if (itHasTokens()) {
+            aligner = TextAligner(_state.value.tokens, normalizer, mode)
+            _state.update { it.copy(progress = aligner?.currentState()) }
+        }
+    }
 
     fun loadExerciseText(rawText: String) {
         val lines = rawText.lines()
@@ -64,18 +80,19 @@ class ReadingSessionController(
                 }
         }
 
-        aligner = TextAligner(tokens, normalizer)
+        aligner = TextAligner(tokens, normalizer, mode)
         _state.value = ReadingSessionState(
             currentText = rawText,
             tokens = tokens,
+            mode = mode,
             progress = aligner?.currentState(),
             microphoneState = MicrophoneState.IDLE,
-            finalReadingScore = 0
+            finalReadingScore = 0,
+            readingScore = 0
         )
     }
 
     fun initialize(context: Context, config: SpeechEngine.Config = SpeechEngine.Config()) {
-        currentConfig = config
         speechEngine.initialize(
             context = context,
             config = config,
@@ -127,12 +144,17 @@ class ReadingSessionController(
             val normalized = normalizer.normalize(rawText)
             val localAligner = aligner ?: return@launch
             val progress = localAligner.onRecognizedChunk(normalized)
-            val computedScore = computeFinalScore(progress)
+            val score = computeScore(progress)
 
             _state.update {
                 it.copy(
                     progress = progress,
-                    finalReadingScore = computedScore,
+                    finalReadingScore = score.readingScore,
+                    coveragePercent = score.coveragePercent,
+                    accuracyPercent = score.accuracyPercent,
+                    fluencyScore = score.fluencyScore,
+                    completionScore = score.completionScore,
+                    readingScore = score.readingScore,
                     lastPartialText = if (isFinal) it.lastPartialText else normalized,
                     lastFinalText = if (isFinal) normalized else it.lastFinalText,
                     microphoneState = when {
@@ -149,10 +171,33 @@ class ReadingSessionController(
         }
     }
 
-    private fun computeFinalScore(progress: TextAligner.AlignmentState): Int {
-        val base = progress.coveragePercent
-        val weakPenalty = progress.weakMatches * 2
-        val skipPenalty = progress.skippedWords
-        return (base - weakPenalty - skipPenalty).coerceIn(0, 100)
+    private fun computeScore(progress: TextAligner.AlignmentState): ReadingScore {
+        val coveragePercent = progress.coveragePercent.coerceIn(0, 100)
+
+        val recognized = progress.matchedWords.coerceAtLeast(1)
+        val exactEstimate = (progress.matchedWords - progress.weakMatches).coerceAtLeast(0)
+        val accuracyPercent = ((exactEstimate * 100.0) / recognized).toInt().coerceIn(0, 100)
+
+        val fluencyPenalty = progress.skippedWords * 5 + progress.weakMatches * 2
+        val fluencyScore = (100 - fluencyPenalty).coerceIn(0, 100)
+
+        val completionScore = if (progress.isCompleted) 100 else coveragePercent
+
+        // Requested weighted approach: 50% coverage, 30% accuracy, 20% fluency.
+        val readingScore = (
+            coveragePercent * 0.5 +
+                accuracyPercent * 0.3 +
+                fluencyScore * 0.2
+            ).toInt().coerceIn(0, 100)
+
+        return ReadingScore(
+            coveragePercent = coveragePercent,
+            accuracyPercent = accuracyPercent,
+            fluencyScore = fluencyScore,
+            completionScore = completionScore,
+            readingScore = readingScore
+        )
     }
+
+    private fun itHasTokens(): Boolean = _state.value.tokens.isNotEmpty()
 }

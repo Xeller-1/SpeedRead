@@ -5,7 +5,8 @@ import kotlin.math.min
 
 class TextAligner(
     private val expectedTokens: List<TokenUnit>,
-    private val normalizer: TextNormalizer = TextNormalizer()
+    private val normalizer: TextNormalizer = TextNormalizer(),
+    private val mode: ReadingMode = ReadingMode.STORY
 ) {
 
     data class AlignmentState(
@@ -28,19 +29,30 @@ class TextAligner(
     private var weakMatches: Int = 0
     private val matchedIndices = linkedSetOf<Int>()
 
+    private val profile = mode.profile
+
     fun onRecognizedChunk(rawText: String): AlignmentState {
+        if (expectedTokens.isEmpty()) return buildState()
+
         val recognizedTokens = normalizer.tokenize(rawText).map { it.normalized }
         if (recognizedTokens.isEmpty()) return buildState()
 
         recognizedTokens.forEach { recognized ->
-            val searchStart = max(0, currentIndex - 3)
-            val searchEnd = min(expectedTokens.lastIndex, currentIndex + 12)
+            val searchStart = max(0, currentIndex - profile.windowBack)
+            val searchEnd = min(expectedTokens.lastIndex, currentIndex + profile.windowForward)
 
             var bestIndex = -1
             var bestScore = Int.MIN_VALUE
             var bestWeak = false
 
             for (i in searchStart..searchEnd) {
+                if (profile.strictLineRespect) {
+                    val currentLine = expectedTokens[currentIndex.coerceIn(0, expectedTokens.lastIndex)].lineIndex
+                    if (expectedTokens[i].lineIndex < currentLine - 1 || expectedTokens[i].lineIndex > currentLine + 1) {
+                        continue
+                    }
+                }
+
                 val expected = expectedTokens[i].normalized
                 val (score, weak) = scoreMatch(expected, recognized)
                 if (score > bestScore) {
@@ -50,9 +62,9 @@ class TextAligner(
                 }
             }
 
-            if (bestIndex == -1 || bestScore < 20) return@forEach
+            if (bestIndex == -1 || bestScore < profile.minAcceptScore) return@forEach
 
-            // Repetition is not critical: do not penalize if already matched.
+            // Repetition is not critical.
             if (matchedIndices.contains(bestIndex)) {
                 currentIndex = max(currentIndex, bestIndex)
                 return@forEach
@@ -60,8 +72,8 @@ class TextAligner(
 
             val gap = bestIndex - currentIndex
             if (gap > 1) {
-                // One skipped word is tolerated and does not break progress.
-                skippedWords += (gap - 1)
+                val effectiveSkip = max(0, gap - 1 - profile.allowedSoftSkips)
+                skippedWords += effectiveSkip
             }
 
             matchedIndices += bestIndex
@@ -100,14 +112,13 @@ class TextAligner(
     private fun scoreMatch(expected: String, recognized: String): Pair<Int, Boolean> {
         if (expected == recognized) return 100 to false
 
-        // Similar words are treated as weak matches.
         val distance = levenshtein(expected, recognized)
         val maxLen = max(expected.length, recognized.length).coerceAtLeast(1)
         val similarity = 1.0 - (distance.toDouble() / maxLen)
 
         return when {
-            similarity >= 0.82 -> 75 to true
-            similarity >= 0.68 -> 45 to true
+            similarity >= profile.weakSimilarityThresholdHigh -> 76 to true
+            similarity >= profile.weakSimilarityThresholdLow -> 48 to true
             else -> 0 to false
         }
     }
