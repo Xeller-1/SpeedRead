@@ -74,6 +74,9 @@ public class ReadingActivity extends AppCompatActivity {
     private Handler speechHandler = new Handler(Looper.getMainLooper());
     private Runnable speechTimeoutRunnable;
     private long lastRecognitionRestartMs = 0L;
+    private long listeningCycleStartMs = 0L;
+    private long lastPartialResultMs = 0L;
+    private boolean heardSpeechInCycle = false;
     
     // Статистика чтения
     private long readingStartTime = 0;
@@ -252,6 +255,7 @@ public class ReadingActivity extends AppCompatActivity {
                     public void onBeginningOfSpeech() {
                         Log.d("ReadingActivity", "Начало речи");
                         isSpeaking = true;
+                        heardSpeechInCycle = true;
                         if (readingStartTime == 0) {
                             readingStartTime = System.currentTimeMillis();
                         }
@@ -308,6 +312,7 @@ public class ReadingActivity extends AppCompatActivity {
                                         // Полностью переинициализируем
                                         initializeSpeechRecognizer();
                                         if (isListening && speechRecognizer != null) {
+                                            markListeningCycleStarted();
                                             speechRecognizer.startListening(speechRecognizerIntent);
                                             Log.d("ReadingActivity", "SpeechRecognizer пересоздан и запущен");
                                         } else {
@@ -328,12 +333,16 @@ public class ReadingActivity extends AppCompatActivity {
                         if (isListening && speechRecognizer != null) {
                             if (error == SpeechRecognizer.ERROR_NO_MATCH || 
                                 error == SpeechRecognizer.ERROR_SPEECH_TIMEOUT) {
-                                // Ничего не распознано или таймаут - красный цвет
-                                runOnUiThread(() -> {
-                                    if (tvCurrentLine != null && currentLineIndex < lines.length) {
-                                        highlightAllWordsRed();
-                                    }
-                                });
+                                if (shouldShowRedFeedback()) {
+                                    // Ничего не распознано после попытки чтения - красный цвет
+                                    runOnUiThread(() -> {
+                                        if (tvCurrentLine != null && currentLineIndex < lines.length) {
+                                            highlightAllWordsRed();
+                                        }
+                                    });
+                                } else {
+                                    Log.d("ReadingActivity", "Пропускаем красную подсветку: слишком ранний NO_MATCH/TIMEOUT");
+                                }
                             }
                             
                             // Перезапускаем распознавание с правильной остановкой
@@ -346,6 +355,7 @@ public class ReadingActivity extends AppCompatActivity {
                                         speechHandler.postDelayed(() -> {
                                             if (isListening && speechRecognizer != null) {
                                                 try {
+                                                    markListeningCycleStarted();
                                                     speechRecognizer.startListening(speechRecognizerIntent);
                                                     Log.d("ReadingActivity", "Перезапуск распознавания после ошибки");
                                                 } catch (Exception e) {
@@ -391,11 +401,15 @@ public class ReadingActivity extends AppCompatActivity {
                             } else {
                                 // Плохое совпадение - продолжаем слушать
                                 Log.d("ReadingActivity", "Плохое совпадение (" + matchQuality + "%), продолжаем слушать");
-                                runOnUiThread(() -> {
-                                    if (tvCurrentLine != null && currentLineIndex < lines.length) {
-                                        highlightAllWordsRed();
-                                    }
-                                });
+                                if (shouldShowRedFeedback()) {
+                                    runOnUiThread(() -> {
+                                        if (tvCurrentLine != null && currentLineIndex < lines.length) {
+                                            highlightAllWordsRed();
+                                        }
+                                    });
+                                } else {
+                                    Log.d("ReadingActivity", "Пропускаем красную подсветку: пока нет признаков речи");
+                                }
                                 if (isListening && speechRecognizer != null) {
                                     restartListeningSafely(220);
                                 }
@@ -403,11 +417,15 @@ public class ReadingActivity extends AppCompatActivity {
                         } else {
                             // Нет результатов - подсвечиваем все красным
                             Log.w("ReadingActivity", "Нет результатов распознавания");
-                            runOnUiThread(() -> {
-                                if (tvCurrentLine != null && currentLineIndex < lines.length) {
-                                    highlightAllWordsRed();
-                                }
-                            });
+                            if (shouldShowRedFeedback()) {
+                                runOnUiThread(() -> {
+                                    if (tvCurrentLine != null && currentLineIndex < lines.length) {
+                                        highlightAllWordsRed();
+                                    }
+                                });
+                            } else {
+                                Log.d("ReadingActivity", "Нет результатов, но подсветку пока не красим (ранний цикл)");
+                            }
                             // Продолжаем слушать
                             if (isListening && speechRecognizer != null) {
                                 restartListeningSafely(220);
@@ -420,7 +438,11 @@ public class ReadingActivity extends AppCompatActivity {
                         ArrayList<String> matches = partialResults.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
                         if (matches != null && !matches.isEmpty() && currentLineIndex < lines.length) {
                             String partialText = matches.get(0).trim();
-                            
+                            if (!partialText.isEmpty()) {
+                                heardSpeechInCycle = true;
+                                lastPartialResultMs = System.currentTimeMillis();
+                            }
+
                             Log.d("ReadingActivity", "Частичный результат: '" + partialText + "'");
                             
                             // Подсвечиваем слова по мере распознавания (как в караоке)
@@ -450,8 +472,8 @@ public class ReadingActivity extends AppCompatActivity {
         // Убираем знаки препинания для сравнения
         recognized = recognized.replaceAll("[^\\p{L}\\p{N}\\s]", "").trim();
         expected = expected.replaceAll("[^\\p{L}\\p{N}\\s]", "").trim();
-        
-        if (expected.isEmpty()) return 0;
+
+        if (expected.isEmpty() || recognized.isEmpty()) return 0;
         
         // Проверяем точное совпадение
         if (recognized.equals(expected)) {
@@ -469,7 +491,15 @@ public class ReadingActivity extends AppCompatActivity {
         
         int matchedWords = 0;
         for (String expectedWord : expectedWords) {
+            if (expectedWord.isEmpty()) {
+                continue;
+            }
+
             for (String recognizedWord : recognizedWords) {
+                if (recognizedWord.isEmpty()) {
+                    continue;
+                }
+
                 if (recognizedWord.equals(expectedWord) || 
                     recognizedWord.contains(expectedWord) || 
                     expectedWord.contains(recognizedWord)) {
@@ -795,6 +825,7 @@ public class ReadingActivity extends AppCompatActivity {
             speechHandler.postDelayed(() -> {
                 if (isListening && speechRecognizer != null) {
                     try {
+                        markListeningCycleStarted();
                         speechRecognizer.startListening(speechRecognizerIntent);
                         Log.d("ReadingActivity", "Распознавание запущено успешно");
                         runOnUiThread(() -> Toast.makeText(this, "Говорите...", Toast.LENGTH_SHORT).show());
@@ -812,6 +843,27 @@ public class ReadingActivity extends AppCompatActivity {
         }
     }
     
+    private void markListeningCycleStarted() {
+        listeningCycleStartMs = System.currentTimeMillis();
+        heardSpeechInCycle = false;
+    }
+
+    private boolean shouldShowRedFeedback() {
+        long now = System.currentTimeMillis();
+        boolean hasSpeechEvidence = heardSpeechInCycle || (now - lastPartialResultMs) < 1500;
+        long cycleAge = now - listeningCycleStartMs;
+
+        if (isSpeaking) {
+            return false;
+        }
+
+        if (!hasSpeechEvidence && cycleAge < 1800) {
+            return false;
+        }
+
+        return true;
+    }
+
     private void restartListeningSafely(long delayMs) {
         speechHandler.postDelayed(() -> {
             if (isListening && speechRecognizer != null) {
@@ -824,6 +876,7 @@ public class ReadingActivity extends AppCompatActivity {
                 } catch (Exception ignored) {
                 }
                 try {
+                    markListeningCycleStarted();
                     speechRecognizer.startListening(speechRecognizerIntent);
                     lastRecognitionRestartMs = now;
                 } catch (Exception e) {
@@ -851,6 +904,7 @@ public class ReadingActivity extends AppCompatActivity {
                 speechHandler.postDelayed(() -> {
                     if (isListening && speechRecognizer != null) {
                         try {
+                            markListeningCycleStarted();
                             speechRecognizer.startListening(speechRecognizerIntent);
                         } catch (Exception e) {
                             Log.e("ReadingActivity", "Ошибка перезапуска", e);
@@ -966,4 +1020,3 @@ public class ReadingActivity extends AppCompatActivity {
      * Применяет выбранный фон из настроек (по умолчанию белый)
      */
 }
-

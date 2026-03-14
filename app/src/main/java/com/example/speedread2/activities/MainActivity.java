@@ -200,6 +200,9 @@ public class MainActivity extends AppCompatActivity {
             }
             BackgroundHelper.applyBackgroundToView(this, racesContent);
         }
+        if (categorySelectionContent != null && categorySelectionContent.getParent() != null) {
+            BackgroundHelper.applyBackgroundToView(this, categorySelectionContent);
+        }
     }
 
     /**

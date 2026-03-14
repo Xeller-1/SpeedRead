@@ -49,6 +49,8 @@ public class ShopActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_shop);
 
+        BackgroundHelper.applyBackground(this);
+
         // Инициализация базы данных
         database = AppDatabase.getInstance(this);
         shopItemDao = database.shopItemDao();
@@ -301,6 +303,7 @@ public class ShopActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
+        BackgroundHelper.applyBackground(this);
         // Обновляем монетки при возврате на экран
         loadUserData();
         // Обновляем отображение товаров
