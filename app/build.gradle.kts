@@ -50,7 +50,6 @@ dependencies {
     implementation(libs.constraintlayout)
     implementation(libs.room.runtime)
     implementation(libs.vosk.android)
-    implementation(libs.jna)
     implementation(libs.kotlinx.coroutines.android)
     annotationProcessor(libs.room.compiler)
     testImplementation(libs.junit)
