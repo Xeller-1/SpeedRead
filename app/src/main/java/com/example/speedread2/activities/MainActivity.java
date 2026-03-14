@@ -14,6 +14,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.cardview.widget.CardView;
 
 import com.example.speedread2.R;
+import com.example.speedread2.utils.BackgroundHelper;
 import com.example.speedread2.database.AppDatabase;
 import com.example.speedread2.dao.UserDao;
 import com.example.speedread2.database.entities.User;
@@ -108,7 +109,7 @@ public class MainActivity extends AppCompatActivity {
         contentContainer.addView(racesContent);
 
         // Применяем выбранный фон
-        applyBackground(racesContent);
+        BackgroundHelper.applyBackgroundToView(this, racesContent);
 
         // Инициализация элементов начального экрана
         Button btnPlay = racesContent.findViewById(R.id.btnPlay);
@@ -134,43 +135,7 @@ public class MainActivity extends AppCompatActivity {
      * Применяет выбранный фон из настроек (по умолчанию белый)
      */
     private void applyBackground(View view) {
-        if (view == null) return;
-        
-        SharedPreferences prefs = getSharedPreferences("UserPrefs", MODE_PRIVATE);
-        String backgroundName = prefs.getString("selectedBackground", null);
-        
-        // Для звездного фона используем drawable ресурс
-        if (backgroundName != null && backgroundName.equals("Звездный фон")) {
-            view.setBackgroundResource(R.drawable.splash_background);
-            return;
-        }
-        
-        int backgroundColor;
-        if (backgroundName != null) {
-            backgroundColor = getBackgroundColor(backgroundName);
-        } else {
-            backgroundColor = 0xFFFFFFFF; // Белый по умолчанию
-        }
-        
-        view.setBackgroundColor(backgroundColor);
-    }
-    
-    /**
-     * Возвращает цвет фона по имени
-     */
-    private int getBackgroundColor(String backgroundName) {
-        switch (backgroundName) {
-            case "Синий фон":
-                return 0xFF2196F3; // Синий
-            case "Звездный фон":
-                return 0xFF0a0e27; // Темно-синий для звездного фона (fallback)
-            case "Красный фон":
-                return 0xFFF44336; // Красный
-            case "Фиолетовый фон":
-                return 0xFF9C27B0; // Фиолетовый
-            default:
-                return 0xFFFFFFFF; // Белый по умолчанию
-        }
+        BackgroundHelper.applyBackgroundToView(this, view);
     }
 
     /**
@@ -186,6 +151,9 @@ public class MainActivity extends AppCompatActivity {
         LayoutInflater inflater = LayoutInflater.from(this);
         categorySelectionContent = inflater.inflate(R.layout.activity_races_category_selection, contentContainer, false);
         contentContainer.addView(categorySelectionContent);
+
+        // Применяем выбранный фон
+        BackgroundHelper.applyBackgroundToView(this, categorySelectionContent);
 
         // Инициализация элементов экрана выбора категорий
         ImageButton btnBack = categorySelectionContent.findViewById(R.id.btnBack);
@@ -230,7 +198,10 @@ public class MainActivity extends AppCompatActivity {
                     tvCoins.setText(String.valueOf(user.coins));
                 }
             }
-            applyBackground(racesContent);
+            BackgroundHelper.applyBackgroundToView(this, racesContent);
+        }
+        if (categorySelectionContent != null && categorySelectionContent.getParent() != null) {
+            BackgroundHelper.applyBackgroundToView(this, categorySelectionContent);
         }
     }
 
@@ -246,7 +217,8 @@ public class MainActivity extends AppCompatActivity {
         resetButton(btnProfile);
 
         // Подсвечиваем активную кнопку синим цветом и полной непрозрачностью
-        activeButton.setTextColor(getResources().getColor(R.color.primary_blue, null));
+        activeButton.setTextColor(getResources().getColor(R.color.primary, null));
+        activeButton.setBackgroundResource(R.drawable.bg_nav_item_active);
         activeButton.setAlpha(1.0f);
     }
 
@@ -256,7 +228,8 @@ public class MainActivity extends AppCompatActivity {
      * @param button - кнопка, которую нужно сбросить
      */
     private void resetButton(Button button) {
-        button.setTextColor(getResources().getColor(R.color.black, null));
-        button.setAlpha(0.6f);
+        button.setTextColor(getResources().getColor(R.color.text_secondary, null));
+        button.setBackgroundResource(android.R.color.transparent);
+        button.setAlpha(1.0f);
     }
 }

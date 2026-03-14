@@ -17,6 +17,7 @@ import com.example.speedread2.R;
 import com.example.speedread2.database.AppDatabase;
 import com.example.speedread2.dao.UserDao;
 import com.example.speedread2.database.entities.User;
+import com.example.speedread2.utils.BackgroundHelper;
 import com.google.android.material.textfield.TextInputEditText;
 
 public class ProfileActivity extends AppCompatActivity {
@@ -41,6 +42,7 @@ public class ProfileActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_profile);
+        BackgroundHelper.applyBackground(this);
         
         // Инициализация базы данных
         database = AppDatabase.getInstance(this);
@@ -376,6 +378,7 @@ public class ProfileActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
+        BackgroundHelper.applyBackground(this);
         // Обновляем данные при возврате на экран (на случай изменений в других Activity)
         loadUserData();
     }

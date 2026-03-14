@@ -1,18 +1,17 @@
 package com.example.speedread2.activities;
 
 import android.Manifest;
+import android.animation.AnimatorSet;
+import android.animation.Keyframe;
 import android.animation.ObjectAnimator;
+import android.animation.PropertyValuesHolder;
 import android.animation.ValueAnimator;
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
-import android.speech.RecognitionListener;
-import android.speech.RecognizerIntent;
-import android.speech.SpeechRecognizer;
 import android.text.SpannableString;
 import android.text.Spanned;
 import android.text.style.ForegroundColorSpan;
@@ -31,11 +30,19 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
 import com.example.speedread2.R;
+import com.example.speedread2.utils.BackgroundHelper;
 import com.example.speedread2.database.AppDatabase;
 import com.example.speedread2.dao.QuestionDao;
 import com.example.speedread2.dao.TextDao;
 import com.example.speedread2.database.entities.Question;
 import com.example.speedread2.database.entities.Text;
+import com.example.speedread2.speech.AndroidSpeechEngine;
+import com.example.speedread2.speech.SpeechEngine;
+import com.example.speedread2.speech.VoskManager;
+import com.example.speedread2.speech.VoskModelLoader;
+import com.example.speedread2.speech.VoskModelState;
+
+import org.vosk.Model;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -60,13 +67,18 @@ public class ReadingActivity extends AppCompatActivity {
     private Button btnMicrophone;
     private ImageButton btnBack;
     
-    private SpeechRecognizer speechRecognizer;
-    private Intent speechRecognizerIntent;
+    private VoskManager voskManager;
+    private Model voskModel;
+    private AndroidSpeechEngine fallbackSpeechEngine;
+    private boolean isUsingFallbackEngine = false;
+    private boolean isModelReady = false;
+    private boolean isModelLoading = false;
     private boolean isListening = false;
     private boolean isReadingStarted = false;
     private boolean isSpeaking = false; // Флаг активного чтения
     
-    private ValueAnimator characterAnimator;
+    private AnimatorSet characterAnimator;
+    private View characterTrack;
     private Handler speechHandler = new Handler(Looper.getMainLooper());
     private Runnable speechTimeoutRunnable;
     
@@ -89,7 +101,7 @@ public class ReadingActivity extends AppCompatActivity {
         setContentView(R.layout.activity_reading);
         
         // Применяем фон
-        applyBackground();
+        BackgroundHelper.applyBackground(this);
         
         // Инициализация БД
         AppDatabase database = AppDatabase.getInstance(this);
@@ -131,6 +143,7 @@ public class ReadingActivity extends AppCompatActivity {
         
         // Инициализация UI
         tvCurrentLine = findViewById(R.id.tvCurrentLine);
+        characterTrack = findViewById(R.id.characterTrack);
         ivCharacter = findViewById(R.id.ivCharacter);
         btnMicrophone = findViewById(R.id.btnMicrophone);
         btnBack = findViewById(R.id.btnBack);
@@ -143,8 +156,8 @@ public class ReadingActivity extends AppCompatActivity {
         // Обработчик кнопки назад
         btnBack.setOnClickListener(v -> finish());
         
-        // Инициализация SpeechRecognizer (до обработчиков)
-        initializeSpeechRecognizer();
+        // Инициализация Vosk (до обработчиков)
+        initializeVosk();
         
         // Обработчик кнопки микрофона
         btnMicrophone.setOnClickListener(v -> {
@@ -196,251 +209,164 @@ public class ReadingActivity extends AppCompatActivity {
         return lines.toArray(new String[0]);
     }
     
-    private void initializeSpeechRecognizer() {
+    private void initializeVosk() {
+        if (isModelLoading) {
+            return;
+        }
+
+        String grammarSource = currentText != null && currentText.content != null
+            ? currentText.content
+            : String.join(" ", lines);
+
+        VoskModelLoader.load(this, "model-ru", state -> {
+            if (state instanceof VoskModelState.Loading) {
+                isModelLoading = true;
+                isModelReady = false;
+                runOnUiThread(() -> {
+                    btnMicrophone.setEnabled(false);
+                    btnMicrophone.setText("Загрузка модели...");
+                });
+            }
+
+            if (state instanceof VoskModelState.Success) {
+                isModelLoading = false;
+                if (voskModel != null) {
+                    try {
+                        voskModel.close();
+                    } catch (Exception ignored) {
+                    }
+                }
+                voskModel = ((VoskModelState.Success) state).getModel();
+                if (voskManager != null) {
+                    voskManager.close();
+                }
+                voskManager = new VoskManager(voskModel, grammarSource, 16000, null);
+                if (fallbackSpeechEngine != null) {
+                    fallbackSpeechEngine.release();
+                    fallbackSpeechEngine = null;
+                }
+                isUsingFallbackEngine = false;
+                isModelReady = true;
+                runOnUiThread(() -> {
+                    btnMicrophone.setEnabled(true);
+                    btnMicrophone.setText(isReadingStarted ? "Остановить" : "Начать");
+                });
+            }
+
+            if (state instanceof VoskModelState.Error) {
+                isModelLoading = false;
+                isModelReady = false;
+                Throwable error = ((VoskModelState.Error) state).getThrowable();
+                Log.e("ReadingActivity", "Ошибка загрузки Vosk модели", error);
+                initializeAndroidFallback();
+                runOnUiThread(() -> {
+                    Toast.makeText(this, "Vosk модель не найдена, включен стандартный режим распознавания", Toast.LENGTH_LONG).show();
+                });
+            }
+        });
+    }
+
+
+    private void initializeAndroidFallback() {
         try {
-            // Проверяем доступность распознавания речи
-            if (!SpeechRecognizer.isRecognitionAvailable(this)) {
-                Toast.makeText(this, "Распознавание речи недоступно на этом устройстве", Toast.LENGTH_LONG).show();
-                Log.e("ReadingActivity", "Speech recognition not available");
-                btnMicrophone.setEnabled(false);
-                return;
+            if (fallbackSpeechEngine != null) {
+                fallbackSpeechEngine.release();
             }
-            
-            // Создаем SpeechRecognizer с явным указанием компонента для работы на телефоне
-            speechRecognizer = SpeechRecognizer.createSpeechRecognizer(this);
-            if (speechRecognizer == null) {
-                Toast.makeText(this, "Не удалось создать распознаватель речи. Проверьте настройки Google.", Toast.LENGTH_LONG).show();
-                Log.e("ReadingActivity", "Failed to create SpeechRecognizer");
-                btnMicrophone.setEnabled(false);
-                return;
-            }
-            
-            speechRecognizerIntent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
-            speechRecognizerIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
-            speechRecognizerIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, "ru-RU"); // Русский язык
-            speechRecognizerIntent.putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true);
-            speechRecognizerIntent.putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1);
-            speechRecognizerIntent.putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE, getPackageName());
-            
-            // Создаем listener как переменную для переиспользования
-            RecognitionListener recognitionListener = new RecognitionListener() {
-                    @Override
-                    public void onReadyForSpeech(Bundle params) {
-                        Log.d("ReadingActivity", "Готов к распознаванию");
-                        runOnUiThread(() -> {
-                            if (tvCurrentLine != null && currentLineIndex < lines.length) {
-                                // Устанавливаем исходный текст без изменений для подсветки
-                                setPlainText(lines[currentLineIndex]);
-                            }
-                        });
-                    }
-                    
-                    @Override
-                    public void onBeginningOfSpeech() {
-                        Log.d("ReadingActivity", "Начало речи");
-                        isSpeaking = true;
-                        if (readingStartTime == 0) {
-                            readingStartTime = System.currentTimeMillis();
+
+            fallbackSpeechEngine = new AndroidSpeechEngine();
+            fallbackSpeechEngine.initialize(this, new SpeechEngine.Callback() {
+                @Override
+                public void onPartialText(String text) {
+                    runOnUiThread(() -> {
+                        if (currentLineIndex < lines.length) {
+                            highlightWordsInLine(text, false);
                         }
-                        startCharacterAnimation();
-                        // Сбрасываем таймаут
-                        cancelSpeechTimeout();
-                    }
-                    
-                    @Override
-                    public void onRmsChanged(float rmsdB) {
-                        // Можно использовать для визуализации уровня звука
-                    }
-                    
-                    @Override
-                    public void onBufferReceived(byte[] buffer) {
-                    }
-                    
-                    @Override
-                    public void onEndOfSpeech() {
-                        Log.d("ReadingActivity", "Конец речи");
-                        isSpeaking = false;
-                        stopCharacterAnimation();
-                        // Даем небольшую задержку перед проверкой результата
-                        speechHandler.postDelayed(() -> {
-                            if (isListening) {
-                                // Проверка будет в onResults
-                            }
-                        }, 500);
-                    }
-                    
-                    @Override
-                    public void onError(int error) {
-                        isSpeaking = false;
-                        stopCharacterAnimation();
-                        String errorMessage = getErrorText(error);
-                        Log.e("ReadingActivity", "Ошибка распознавания: " + errorMessage + " (код: " + error + ")");
-                        
-                        // ERROR_CLIENT обычно означает, что нужно пересоздать SpeechRecognizer
-                        if (error == SpeechRecognizer.ERROR_CLIENT) {
-                            Log.w("ReadingActivity", "ERROR_CLIENT - пересоздаем SpeechRecognizer");
-                            if (speechRecognizer != null) {
-                                try {
-                                    speechRecognizer.destroy();
-                                } catch (Exception e) {
-                                    Log.e("ReadingActivity", "Ошибка при уничтожении SpeechRecognizer", e);
-                                }
-                                speechRecognizer = null;
-                            }
-                            
-                            // Пересоздаем SpeechRecognizer - полностью переинициализируем
-                            speechHandler.postDelayed(() -> {
-                                if (isListening) {
-                                    try {
-                                        // Полностью переинициализируем
-                                        initializeSpeechRecognizer();
-                                        if (isListening && speechRecognizer != null) {
-                                            speechRecognizer.startListening(speechRecognizerIntent);
-                                            Log.d("ReadingActivity", "SpeechRecognizer пересоздан и запущен");
-                                        } else {
-                                            Log.e("ReadingActivity", "Не удалось пересоздать SpeechRecognizer");
-                                            runOnUiThread(() -> {
-                                                Toast.makeText(ReadingActivity.this, "Ошибка микрофона. Перезапустите приложение.", Toast.LENGTH_LONG).show();
-                                            });
-                                        }
-                                    } catch (Exception e) {
-                                        Log.e("ReadingActivity", "Ошибка пересоздания SpeechRecognizer", e);
-                                    }
-                                }
-                            }, 500);
-                            return;
+                    });
+                }
+
+                @Override
+                public void onFinalText(String text) {
+                    runOnUiThread(() -> handleFinalRecognition(text));
+                }
+
+                @Override
+                public void onError(String error) {
+                    Log.e("ReadingActivity", "Fallback speech error: " + error);
+                    runOnUiThread(() -> {
+                        if (isListening && currentLineIndex < lines.length) {
+                            highlightAllWordsRed();
+                            scheduleRestartListening(900);
                         }
-                        
-                        // Для других ошибок пытаемся перезапустить распознавание
-                        if (isListening && speechRecognizer != null) {
-                            if (error == SpeechRecognizer.ERROR_NO_MATCH || 
-                                error == SpeechRecognizer.ERROR_SPEECH_TIMEOUT) {
-                                // Ничего не распознано или таймаут - красный цвет
-                                runOnUiThread(() -> {
-                                    if (tvCurrentLine != null && currentLineIndex < lines.length) {
-                                        highlightAllWordsRed();
-                                    }
-                                });
-                            }
-                            
-                            // Перезапускаем распознавание с правильной остановкой
-                            speechHandler.postDelayed(() -> {
-                                if (isListening && speechRecognizer != null) {
-                                    try {
-                                        // Сначала останавливаем, если работает
-                                        speechRecognizer.stopListening();
-                                        // Небольшая задержка перед новым запуском
-                                        speechHandler.postDelayed(() -> {
-                                            if (isListening && speechRecognizer != null) {
-                                                try {
-                                                    speechRecognizer.startListening(speechRecognizerIntent);
-                                                    Log.d("ReadingActivity", "Перезапуск распознавания после ошибки");
-                                                } catch (Exception e) {
-                                                    Log.e("ReadingActivity", "Ошибка перезапуска распознавания", e);
-                                                }
-                                            }
-                                        }, 500);
-                                    } catch (Exception e) {
-                                        Log.e("ReadingActivity", "Ошибка остановки распознавания", e);
-                                    }
-                                }
-                            }, 1500);
-                        }
-                    }
-                    
-                    @Override
-                    public void onResults(Bundle results) {
-                        ArrayList<String> matches = results.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
-                        if (matches != null && !matches.isEmpty() && currentLineIndex < lines.length) {
-                            String recognizedText = matches.get(0).trim();
-                            String expectedText = lines[currentLineIndex].trim();
-                            
-                            Log.d("ReadingActivity", "=== РЕЗУЛЬТАТЫ РАСПОЗНАВАНИЯ ===");
-                            Log.d("ReadingActivity", "Распознано: '" + recognizedText + "'");
-                            Log.d("ReadingActivity", "Ожидается: '" + expectedText + "'");
-                            
-                            // Подсвечиваем слова в зависимости от качества распознавания
-                            int matchQuality = highlightWordsInLine(recognizedText, true);
-                            
-                            Log.d("ReadingActivity", "Качество совпадения: " + matchQuality + "%");
-                            
-                            // Обновляем статистику
-                            updateReadingStats(matchQuality);
-                            
-                            if (matchQuality >= 40) {
-                                // Хорошее или среднее совпадение - переходим к следующей строке
-                                Log.d("ReadingActivity", "Переход к следующей строке (качество: " + matchQuality + "%)");
-                                speechHandler.postDelayed(() -> {
-                                    if (isListening) {
-                                        moveToNextLine();
-                                    }
-                                }, matchQuality >= 60 ? 800 : 1200);
-                            } else {
-                                // Плохое совпадение - продолжаем слушать
-                                Log.d("ReadingActivity", "Плохое совпадение (" + matchQuality + "%), продолжаем слушать");
-                                runOnUiThread(() -> {
-                                    if (tvCurrentLine != null && currentLineIndex < lines.length) {
-                                        highlightAllWordsRed();
-                                    }
-                                });
-                                if (isListening && speechRecognizer != null) {
-                                    speechHandler.postDelayed(() -> {
-                                        if (isListening && speechRecognizer != null) {
-                                            try {
-                                                speechRecognizer.startListening(speechRecognizerIntent);
-                                            } catch (Exception e) {
-                                                Log.e("ReadingActivity", "Ошибка перезапуска", e);
-                                            }
-                                        }
-                                    }, 1500);
-                                }
-                            }
-                        } else {
-                            // Нет результатов - подсвечиваем все красным
-                            Log.w("ReadingActivity", "Нет результатов распознавания");
-                            runOnUiThread(() -> {
-                                if (tvCurrentLine != null && currentLineIndex < lines.length) {
-                                    highlightAllWordsRed();
-                                }
-                            });
-                            // Продолжаем слушать
-                            if (isListening && speechRecognizer != null) {
-                                speechHandler.postDelayed(() -> {
-                                    if (isListening && speechRecognizer != null) {
-                                        try {
-                                            speechRecognizer.startListening(speechRecognizerIntent);
-                                        } catch (Exception e) {
-                                            Log.e("ReadingActivity", "Ошибка перезапуска", e);
-                                        }
-                                    }
-                                }, 1500);
-                            }
-                        }
-                    }
-                    
-                    @Override
-                    public void onPartialResults(Bundle partialResults) {
-                        ArrayList<String> matches = partialResults.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
-                        if (matches != null && !matches.isEmpty() && currentLineIndex < lines.length) {
-                            String partialText = matches.get(0).trim();
-                            
-                            Log.d("ReadingActivity", "Частичный результат: '" + partialText + "'");
-                            
-                            // Подсвечиваем слова по мере распознавания (как в караоке)
-                            highlightWordsInLine(partialText, false);
-                        }
-                    }
-                    
-                    @Override
-                    public void onEvent(int eventType, Bundle params) {
-                    }
-                };
-            
-            speechRecognizer.setRecognitionListener(recognitionListener);
+                    });
+                }
+            }, new SpeechEngine.Config("ru-RU", 16000, "model-ru"));
+
+            isUsingFallbackEngine = true;
+            isModelReady = true;
+            runOnUiThread(() -> {
+                btnMicrophone.setEnabled(true);
+                btnMicrophone.setText(isReadingStarted ? "Остановить" : "Начать");
+            });
         } catch (Exception e) {
-            e.printStackTrace();
-            Toast.makeText(this, "Ошибка инициализации распознавания речи", Toast.LENGTH_SHORT).show();
-            btnMicrophone.setEnabled(false);
+            Log.e("ReadingActivity", "Не удалось инициализировать fallback speech", e);
+            runOnUiThread(() -> {
+                btnMicrophone.setEnabled(false);
+                Toast.makeText(this, "Не удалось инициализировать распознавание речи", Toast.LENGTH_LONG).show();
+            });
+        }
+    }
+
+    private final VoskManager.Callback voskCallback = new VoskManager.Callback() {
+        @Override
+        public void onPartialText(String text) {
+            runOnUiThread(() -> {
+                if (currentLineIndex < lines.length) {
+                    highlightWordsInLine(text, false);
+                }
+            });
+        }
+
+        @Override
+        public void onFinalText(String text) {
+            runOnUiThread(() -> handleFinalRecognition(text));
+        }
+
+        @Override
+        public void onError(String error) {
+            Log.e("ReadingActivity", "Vosk error: " + error);
+            runOnUiThread(() -> {
+                if (isListening && currentLineIndex < lines.length) {
+                    highlightAllWordsRed();
+                    scheduleRestartListening(900);
+                }
+            });
+        }
+    };
+
+    private void handleFinalRecognition(String recognizedText) {
+        if (currentLineIndex >= lines.length) {
+            return;
+        }
+
+        String expectedText = lines[currentLineIndex].trim();
+        String normalized = recognizedText == null ? "" : recognizedText.trim();
+
+        Log.d("ReadingActivity", "=== VOSK RESULT ===");
+        Log.d("ReadingActivity", "Распознано: '" + normalized + "'");
+        Log.d("ReadingActivity", "Ожидается: '" + expectedText + "'");
+
+        int matchQuality = highlightWordsInLine(normalized, true);
+        updateReadingStats(matchQuality);
+
+        if (matchQuality >= 40) {
+            speechHandler.postDelayed(() -> {
+                if (isListening) {
+                    moveToNextLine();
+                }
+            }, matchQuality >= 60 ? 220 : 380);
+        } else {
+            highlightAllWordsRed();
+            scheduleRestartListening(1100);
         }
     }
     
@@ -453,8 +379,8 @@ public class ReadingActivity extends AppCompatActivity {
         // Убираем знаки препинания для сравнения
         recognized = recognized.replaceAll("[^\\p{L}\\p{N}\\s]", "").trim();
         expected = expected.replaceAll("[^\\p{L}\\p{N}\\s]", "").trim();
-        
-        if (expected.isEmpty()) return 0;
+
+        if (expected.isEmpty() || recognized.isEmpty()) return 0;
         
         // Проверяем точное совпадение
         if (recognized.equals(expected)) {
@@ -472,7 +398,15 @@ public class ReadingActivity extends AppCompatActivity {
         
         int matchedWords = 0;
         for (String expectedWord : expectedWords) {
+            if (expectedWord.isEmpty()) {
+                continue;
+            }
+
             for (String recognizedWord : recognizedWords) {
+                if (recognizedWord.isEmpty()) {
+                    continue;
+                }
+
                 if (recognizedWord.equals(expectedWord) || 
                     recognizedWord.contains(expectedWord) || 
                     expectedWord.contains(recognizedWord)) {
@@ -696,62 +630,33 @@ public class ReadingActivity extends AppCompatActivity {
         }
     }
     
-    /**
-     * Получает текстовое описание ошибки
-     */
-    private String getErrorText(int errorCode) {
-        switch (errorCode) {
-            case SpeechRecognizer.ERROR_AUDIO:
-                return "Ошибка записи аудио";
-            case SpeechRecognizer.ERROR_CLIENT:
-                return "Ошибка клиента";
-            case SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS:
-                return "Недостаточно разрешений";
-            case SpeechRecognizer.ERROR_NETWORK:
-                return "Ошибка сети";
-            case SpeechRecognizer.ERROR_NETWORK_TIMEOUT:
-                return "Таймаут сети";
-            case SpeechRecognizer.ERROR_NO_MATCH:
-                return "Нет совпадений";
-            case SpeechRecognizer.ERROR_RECOGNIZER_BUSY:
-                return "Распознаватель занят";
-            case SpeechRecognizer.ERROR_SERVER:
-                return "Ошибка сервера";
-            case SpeechRecognizer.ERROR_SPEECH_TIMEOUT:
-                return "Таймаут речи";
-            default:
-                return "Неизвестная ошибка";
-        }
-    }
-    
     private void startReading() {
         // Проверяем разрешение на микрофон
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) 
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO)
                 != PackageManager.PERMISSION_GRANTED) {
             Log.d("ReadingActivity", "Запрашиваем разрешение на микрофон");
-            ActivityCompat.requestPermissions(this, 
-                new String[]{Manifest.permission.RECORD_AUDIO}, 
+            ActivityCompat.requestPermissions(this,
+                new String[]{Manifest.permission.RECORD_AUDIO},
                 PERMISSION_REQUEST_CODE);
             return;
         }
-        
+
+        if (!isModelReady || (!isUsingFallbackEngine && voskManager == null) || (isUsingFallbackEngine && fallbackSpeechEngine == null)) {
+            Toast.makeText(this, "Распознавание еще инициализируется", Toast.LENGTH_SHORT).show();
+            initializeVosk();
+            return;
+        }
+
         Log.d("ReadingActivity", "Начинаем чтение");
         isReadingStarted = true;
         btnMicrophone.setText("Остановить");
         if (tvCurrentLine != null && currentLineIndex < lines.length) {
             setPlainText(lines[currentLineIndex]);
         }
-        
-        // Убеждаемся, что SpeechRecognizer инициализирован
-        if (speechRecognizer == null) {
-            Log.e("ReadingActivity", "SpeechRecognizer не инициализирован!");
-            Toast.makeText(this, "Ошибка: распознавание речи не инициализировано", Toast.LENGTH_SHORT).show();
-            return;
-        }
-        
+
         startListening();
     }
-    
+
     private void toggleMicrophone() {
         if (isListening) {
             stopListening();
@@ -764,64 +669,59 @@ public class ReadingActivity extends AppCompatActivity {
             btnMicrophone.setText("Остановить");
         }
     }
-    
+
     private void startListening() {
-        // Проверяем разрешение еще раз
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) 
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO)
                 != PackageManager.PERMISSION_GRANTED) {
             Log.e("ReadingActivity", "Нет разрешения на микрофон");
             Toast.makeText(this, "Нет разрешения на микрофон", Toast.LENGTH_SHORT).show();
             return;
         }
-        
-        if (speechRecognizer == null) {
-            Log.e("ReadingActivity", "SpeechRecognizer is null, reinitializing...");
-            initializeSpeechRecognizer();
-            if (speechRecognizer == null) {
-                Toast.makeText(this, "Не удалось инициализировать микрофон", Toast.LENGTH_LONG).show();
-                return;
-            }
+
+        if (!isReadingStarted) {
+            return;
         }
-        
-        if (!isListening) {
-            isListening = true;
-            Log.d("ReadingActivity", "Начинаем слушать");
-            
-            // Останавливаем предыдущее прослушивание, если оно было
-            try {
-                speechRecognizer.stopListening();
-            } catch (Exception e) {
-                Log.d("ReadingActivity", "Не удалось остановить предыдущее прослушивание (это нормально)");
-            }
-            
-            // Небольшая задержка перед запуском нового прослушивания
-            speechHandler.postDelayed(() -> {
-                if (isListening && speechRecognizer != null) {
-                    try {
-                        speechRecognizer.startListening(speechRecognizerIntent);
-                        Log.d("ReadingActivity", "Распознавание запущено успешно");
-                        runOnUiThread(() -> Toast.makeText(this, "Говорите...", Toast.LENGTH_SHORT).show());
-                    } catch (Exception e) {
-                        Log.e("ReadingActivity", "Ошибка при запуске распознавания", e);
-                        runOnUiThread(() -> {
-                            Toast.makeText(this, "Ошибка запуска микрофона. Проверьте настройки Google.", Toast.LENGTH_LONG).show();
-                            isListening = false;
-                        });
-                    }
+
+        if (!isModelReady || (!isUsingFallbackEngine && voskManager == null) || (isUsingFallbackEngine && fallbackSpeechEngine == null)) {
+            Toast.makeText(this, "Распознавание еще инициализируется", Toast.LENGTH_SHORT).show();
+            initializeVosk();
+            return;
+        }
+
+        isListening = true;
+        if (isUsingFallbackEngine && fallbackSpeechEngine != null) {
+            fallbackSpeechEngine.startListening();
+            Log.d("ReadingActivity", "Fallback распознавание запущено");
+        } else if (voskManager != null) {
+            voskManager.start(voskCallback);
+            Log.d("ReadingActivity", "Vosk распознавание запущено");
+        }
+    }
+
+    private void scheduleRestartListening(long delayMs) {
+        speechHandler.postDelayed(() -> {
+            if (isListening && isReadingStarted && !isSpeaking) {
+                if (isUsingFallbackEngine && fallbackSpeechEngine != null) {
+                    fallbackSpeechEngine.stopListening();
+                } else if (voskManager != null) {
+                    voskManager.stop();
                 }
-            }, 200);
-        } else {
-            Log.w("ReadingActivity", "Уже слушаем: isListening=" + isListening);
-        }
+                startListening();
+            }
+        }, delayMs);
     }
-    
+
     private void stopListening() {
-        if (speechRecognizer != null && isListening) {
+        if (isListening) {
             isListening = false;
-            speechRecognizer.stopListening();
+            if (isUsingFallbackEngine && fallbackSpeechEngine != null) {
+                fallbackSpeechEngine.stopListening();
+            } else if (voskManager != null) {
+                voskManager.stop();
+            }
         }
     }
-    
+
     private void moveToNextLine() {
         if (currentLineIndex < lines.length - 1) {
             currentLineIndex++;
@@ -829,16 +729,8 @@ public class ReadingActivity extends AppCompatActivity {
             setPlainText(lines[currentLineIndex]); // Устанавливаем обычный текст для новой строки
             
             // Продолжаем слушать для следующей строки
-            if (isListening && speechRecognizer != null) {
-                speechHandler.postDelayed(() -> {
-                    if (isListening && speechRecognizer != null) {
-                        try {
-                            speechRecognizer.startListening(speechRecognizerIntent);
-                        } catch (Exception e) {
-                            Log.e("ReadingActivity", "Ошибка перезапуска", e);
-                        }
-                    }
-                }, 500);
+            if (isListening && ((isUsingFallbackEngine && fallbackSpeechEngine != null) || voskManager != null)) {
+                scheduleRestartListening(180);
             }
         } else {
             // Текст закончен - показываем результаты
@@ -849,18 +741,45 @@ public class ReadingActivity extends AppCompatActivity {
     }
     
     private void startCharacterAnimation() {
-        if (ivCharacter != null && characterAnimator == null) {
-            ivCharacter.setVisibility(View.VISIBLE);
-            int screenWidth = getResources().getDisplayMetrics().widthPixels;
-            
-            // Анимация бега слева направо
-            characterAnimator = ObjectAnimator.ofFloat(ivCharacter, "translationX", 0f, screenWidth - ivCharacter.getWidth());
-            characterAnimator.setDuration(5000); // 5 секунд на пробежку
-            characterAnimator.setInterpolator(new LinearInterpolator());
-            characterAnimator.setRepeatCount(ValueAnimator.INFINITE);
-            characterAnimator.setRepeatMode(ValueAnimator.RESTART);
-            characterAnimator.start();
+        if (ivCharacter == null || characterTrack == null || characterAnimator != null) {
+            return;
         }
+
+        ivCharacter.setVisibility(View.VISIBLE);
+        characterTrack.post(() -> {
+            if (characterAnimator != null) {
+                return;
+            }
+
+            float maxX = Math.max(120f, characterTrack.getWidth() - ivCharacter.getWidth() - 24f);
+            float laneCenter = Math.max(0f, (characterTrack.getHeight() - ivCharacter.getHeight()) / 2f);
+            float laneTop = Math.max(0f, laneCenter - 55f);
+            ObjectAnimator moveX = ObjectAnimator.ofFloat(ivCharacter, "translationX", 0f, maxX);
+            moveX.setDuration(4200);
+            moveX.setRepeatCount(ValueAnimator.INFINITE);
+            moveX.setRepeatMode(ValueAnimator.RESTART);
+            moveX.setInterpolator(new LinearInterpolator());
+
+            PropertyValuesHolder pvhY = PropertyValuesHolder.ofKeyframe(
+                "translationY",
+                Keyframe.ofFloat(0f, laneCenter),
+                Keyframe.ofFloat(0.18f, laneTop),
+                Keyframe.ofFloat(0.36f, laneTop),
+                Keyframe.ofFloat(0.52f, laneCenter),
+                Keyframe.ofFloat(0.70f, laneTop),
+                Keyframe.ofFloat(0.88f, laneCenter),
+                Keyframe.ofFloat(1f, laneCenter)
+            );
+            ObjectAnimator moveY = ObjectAnimator.ofPropertyValuesHolder(ivCharacter, pvhY);
+            moveY.setDuration(4200);
+            moveY.setRepeatCount(ValueAnimator.INFINITE);
+            moveY.setRepeatMode(ValueAnimator.RESTART);
+            moveY.setInterpolator(new LinearInterpolator());
+
+            characterAnimator = new AnimatorSet();
+            characterAnimator.playTogether(moveX, moveY);
+            characterAnimator.start();
+        });
     }
     
     private void stopCharacterAnimation() {
@@ -869,7 +788,8 @@ public class ReadingActivity extends AppCompatActivity {
             characterAnimator = null;
         }
         if (ivCharacter != null) {
-            ivCharacter.setTranslationX(0f); // Возвращаем в начало
+            ivCharacter.setTranslationX(0f);
+            ivCharacter.setTranslationY(0f);
         }
     }
     
@@ -892,8 +812,20 @@ public class ReadingActivity extends AppCompatActivity {
         super.onDestroy();
         cancelSpeechTimeout();
         stopCharacterAnimation();
-        if (speechRecognizer != null) {
-            speechRecognizer.destroy();
+        if (voskManager != null) {
+            voskManager.close();
+            voskManager = null;
+        }
+        if (fallbackSpeechEngine != null) {
+            fallbackSpeechEngine.release();
+            fallbackSpeechEngine = null;
+        }
+        if (voskModel != null) {
+            try {
+                voskModel.close();
+            } catch (Exception ignored) {
+            }
+            voskModel = null;
         }
         if (speechHandler != null) {
             speechHandler.removeCallbacksAndMessages(null);
@@ -903,8 +835,13 @@ public class ReadingActivity extends AppCompatActivity {
     @Override
     protected void onPause() {
         super.onPause();
-        if (isListening && speechRecognizer != null) {
-            speechRecognizer.stopListening();
+        if (isListening) {
+            if (isUsingFallbackEngine && fallbackSpeechEngine != null) {
+                fallbackSpeechEngine.stopListening();
+            } else if (voskManager != null) {
+                voskManager.stop();
+            }
+            isListening = false;
         }
     }
     
@@ -919,45 +856,4 @@ public class ReadingActivity extends AppCompatActivity {
     /**
      * Применяет выбранный фон из настроек (по умолчанию белый)
      */
-    private void applyBackground() {
-        SharedPreferences prefs = getSharedPreferences("UserPrefs", MODE_PRIVATE);
-        String backgroundName = prefs.getString("selectedBackground", null);
-        
-        View rootView = findViewById(android.R.id.content);
-        if (rootView != null) {
-            // Для звездного фона используем drawable ресурс
-            if (backgroundName != null && backgroundName.equals("Звездный фон")) {
-                rootView.setBackgroundResource(R.drawable.splash_background);
-                return;
-            }
-            
-            int backgroundColor;
-            if (backgroundName != null) {
-                backgroundColor = getBackgroundColor(backgroundName);
-            } else {
-                backgroundColor = 0xFFFFFFFF; // Белый по умолчанию
-            }
-            
-            rootView.setBackgroundColor(backgroundColor);
-        }
-    }
-    
-    /**
-     * Возвращает цвет фона по имени
-     */
-    private int getBackgroundColor(String backgroundName) {
-        switch (backgroundName) {
-            case "Синий фон":
-                return 0xFF2196F3; // Синий
-            case "Звездный фон":
-                return 0xFF0a0e27; // Темно-синий для звездного фона (fallback)
-            case "Красный фон":
-                return 0xFFF44336; // Красный
-            case "Фиолетовый фон":
-                return 0xFF9C27B0; // Фиолетовый
-            default:
-                return 0xFFFFFFFF; // Белый по умолчанию
-        }
-    }
 }
-
