@@ -2,13 +2,13 @@ package com.example.speedread2.activities;
 
 import android.os.Bundle;
 import android.widget.ImageButton;
-import android.widget.Toast;
 
 import android.content.Intent;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.cardview.widget.CardView;
 
 import com.example.speedread2.R;
+import com.example.speedread2.utils.BackgroundHelper;
 import com.example.speedread2.database.AppDatabase;
 import com.example.speedread2.dao.CategoryDao;
 import com.example.speedread2.dao.TextDao;
@@ -37,6 +37,8 @@ public class StoriesActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_stories);
+
+        BackgroundHelper.applyBackground(this);
 
         // Инициализация базы данных
         database = AppDatabase.getInstance(this);
@@ -85,4 +87,6 @@ public class StoriesActivity extends AppCompatActivity {
             stories = textDao.getTextsByCategory(storiesCategory.id);
         }
     }
+
+
 }

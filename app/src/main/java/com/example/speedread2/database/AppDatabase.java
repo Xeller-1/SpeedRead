@@ -31,7 +31,7 @@ import com.example.speedread2.database.entities.UserStats;
         UserStats.class,
         Question.class
     },
-    version = 4,
+    version = 6,
     exportSchema = false
 )
 public abstract class AppDatabase extends RoomDatabase {

@@ -12,6 +12,7 @@ import com.example.speedread2.dao.UserDao;
 import com.example.speedread2.dao.UserStatsDao;
 import com.example.speedread2.database.entities.User;
 import com.example.speedread2.database.entities.UserStats;
+import com.example.speedread2.utils.BackgroundHelper;
 import com.google.android.material.textfield.TextInputEditText;
 
 import java.text.SimpleDateFormat;
@@ -46,6 +47,7 @@ public class RegistrationActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_registration);
+        BackgroundHelper.applyBackground(this);
 
         // Инициализация базы данных
         database = AppDatabase.getInstance(this);
