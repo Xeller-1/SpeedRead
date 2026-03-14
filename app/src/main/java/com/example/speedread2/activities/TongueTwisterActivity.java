@@ -1,24 +1,21 @@
 package com.example.speedread2.activities;
 
 import android.Manifest;
-import android.animation.ObjectAnimator;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
-import android.content.SharedPreferences;
 import android.speech.RecognitionListener;
 import android.speech.RecognizerIntent;
 import android.speech.SpeechRecognizer;
 import android.text.SpannableString;
 import android.text.style.ForegroundColorSpan;
 import android.util.Log;
-import android.view.View;
 import android.widget.Button;
 import android.widget.ImageButton;
-import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -28,8 +25,10 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
 import com.example.speedread2.R;
+import com.example.speedread2.utils.BackgroundHelper;
 import com.example.speedread2.database.AppDatabase;
 import com.example.speedread2.dao.TongueTwisterDao;
+import com.example.speedread2.dao.UserDao;
 import com.example.speedread2.database.entities.TongueTwister;
 
 import java.util.ArrayList;
@@ -44,11 +43,11 @@ public class TongueTwisterActivity extends AppCompatActivity {
     private static final int PERMISSION_REQUEST_CODE = 100;
     
     private TongueTwisterDao tongueTwisterDao;
+    private UserDao userDao;
     private TongueTwister currentTongueTwister;
     private String[] words; // Массив слов скороговорки
     
     private TextView tvCurrentLine;
-    private ImageView ivCharacter;
     private Button btnMicrophone;
     private ImageButton btnBack;
     
@@ -57,8 +56,9 @@ public class TongueTwisterActivity extends AppCompatActivity {
     private boolean isListening = false;
     private boolean isReadingStarted = false;
     private boolean isSpeaking = false;
+    private boolean isCompleted = false;
+    private boolean isRewardGiven = false;
     
-    private ObjectAnimator characterAnimator;
     private Handler speechHandler = new Handler(Looper.getMainLooper());
     
     // Цвета для подсветки
@@ -69,14 +69,15 @@ public class TongueTwisterActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_reading);
+        setContentView(R.layout.activity_tongue_twister);
         
         // Применяем фон
-        applyBackground();
+        BackgroundHelper.applyBackground(this);
         
         // Инициализация БД
         AppDatabase database = AppDatabase.getInstance(this);
         tongueTwisterDao = database.tongueTwisterDao();
+        userDao = database.userDao();
         
         // Получаем ID скороговорки из Intent
         int tongueTwisterId = getIntent().getIntExtra("tongueTwisterId", -1);
@@ -99,7 +100,6 @@ public class TongueTwisterActivity extends AppCompatActivity {
         
         // Инициализация UI
         tvCurrentLine = findViewById(R.id.tvCurrentLine);
-        ivCharacter = findViewById(R.id.ivCharacter);
         btnMicrophone = findViewById(R.id.btnMicrophone);
         btnBack = findViewById(R.id.btnBack);
         
@@ -159,7 +159,6 @@ public class TongueTwisterActivity extends AppCompatActivity {
                 public void onBeginningOfSpeech() {
                     Log.d("TongueTwisterActivity", "Начало речи");
                     isSpeaking = true;
-                    startCharacterAnimation();
                 }
                 
                 @Override
@@ -174,13 +173,11 @@ public class TongueTwisterActivity extends AppCompatActivity {
                 public void onEndOfSpeech() {
                     Log.d("TongueTwisterActivity", "Конец речи");
                     isSpeaking = false;
-                    stopCharacterAnimation();
                 }
                 
                 @Override
                 public void onError(int error) {
                     isSpeaking = false;
-                    stopCharacterAnimation();
                     String errorMessage = getErrorText(error);
                     Log.e("TongueTwisterActivity", "Ошибка распознавания: " + errorMessage);
                     
@@ -199,7 +196,7 @@ public class TongueTwisterActivity extends AppCompatActivity {
                     if (error == SpeechRecognizer.ERROR_NO_MATCH || error == SpeechRecognizer.ERROR_SPEECH_TIMEOUT) {
                         highlightAllWordsRed();
                         speechHandler.postDelayed(() -> {
-                            if (isReadingStarted) {
+                            if (isReadingStarted && !isCompleted) {
                                 startListening();
                             }
                         }, 1000);
@@ -221,12 +218,16 @@ public class TongueTwisterActivity extends AppCompatActivity {
                             highlightWordsInLine(recognizedText, true);
                         });
                         
-                        // Продолжаем слушать
-                        speechHandler.postDelayed(() -> {
-                            if (isReadingStarted) {
-                                startListening();
-                            }
-                        }, 2000);
+                        if (matchQuality >= 70) {
+                            handleSuccessfulReading();
+                        } else {
+                            // Продолжаем слушать
+                            speechHandler.postDelayed(() -> {
+                                if (isReadingStarted && !isCompleted) {
+                                    startListening();
+                                }
+                            }, 2000);
+                        }
                     }
                 }
                 
@@ -374,26 +375,6 @@ public class TongueTwisterActivity extends AppCompatActivity {
         }
     }
     
-    private void startCharacterAnimation() {
-        if (ivCharacter == null || characterAnimator != null) return;
-        
-        characterAnimator = ObjectAnimator.ofFloat(ivCharacter, "translationX", 0f, 50f, -50f, 0f);
-        characterAnimator.setDuration(500);
-        characterAnimator.setRepeatCount(ObjectAnimator.INFINITE);
-        characterAnimator.setInterpolator(new android.view.animation.LinearInterpolator());
-        characterAnimator.start();
-    }
-    
-    private void stopCharacterAnimation() {
-        if (characterAnimator != null) {
-            characterAnimator.cancel();
-            characterAnimator = null;
-        }
-        if (ivCharacter != null) {
-            ivCharacter.setTranslationX(0f);
-        }
-    }
-    
     private void startReading() {
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.RECORD_AUDIO}, PERMISSION_REQUEST_CODE);
@@ -438,9 +419,44 @@ public class TongueTwisterActivity extends AppCompatActivity {
             }
         }
         isListening = false;
-        stopCharacterAnimation();
     }
     
+    private void handleSuccessfulReading() {
+        if (isCompleted) return;
+
+        isCompleted = true;
+        isReadingStarted = false;
+        stopListening();
+        btnMicrophone.setEnabled(false);
+        btnMicrophone.setText("Прочитано");
+
+        int rewardCoins = getRewardByDifficulty(currentTongueTwister.difficulty);
+        if (!isRewardGiven) {
+            SharedPreferences prefs = getSharedPreferences("UserPrefs", MODE_PRIVATE);
+            int currentUserId = prefs.getInt("currentUserId", -1);
+            if (currentUserId != -1) {
+                var user = userDao.getUserById(currentUserId);
+                if (user != null) {
+                    userDao.updateCoins(currentUserId, user.coins + rewardCoins);
+                }
+            }
+            isRewardGiven = true;
+        }
+
+        Toast.makeText(this, "Скороговорка успешно прочитана! +" + rewardCoins + " монет", Toast.LENGTH_LONG).show();
+    }
+
+    private int getRewardByDifficulty(int difficulty) {
+        switch (difficulty) {
+            case 1:
+                return 3;
+            case 2:
+                return 6;
+            default:
+                return 10;
+        }
+    }
+
     private String getErrorText(int errorCode) {
         switch (errorCode) {
             case SpeechRecognizer.ERROR_AUDIO:
@@ -487,7 +503,6 @@ public class TongueTwisterActivity extends AppCompatActivity {
         if (speechHandler != null) {
             speechHandler.removeCallbacksAndMessages(null);
         }
-        stopCharacterAnimation();
     }
     
     @Override
@@ -499,7 +514,7 @@ public class TongueTwisterActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        if (isReadingStarted && !isListening) {
+        if (isReadingStarted && !isListening && !isCompleted) {
             startListening();
         }
     }
@@ -507,45 +522,5 @@ public class TongueTwisterActivity extends AppCompatActivity {
     /**
      * Применяет выбранный фон из настроек (по умолчанию белый)
      */
-    private void applyBackground() {
-        SharedPreferences prefs = getSharedPreferences("UserPrefs", MODE_PRIVATE);
-        String backgroundName = prefs.getString("selectedBackground", null);
-        
-        View rootView = findViewById(android.R.id.content);
-        if (rootView != null) {
-            // Для звездного фона используем drawable ресурс
-            if (backgroundName != null && backgroundName.equals("Звездный фон")) {
-                rootView.setBackgroundResource(R.drawable.splash_background);
-                return;
-            }
-            
-            int backgroundColor;
-            if (backgroundName != null) {
-                backgroundColor = getBackgroundColor(backgroundName);
-            } else {
-                backgroundColor = 0xFFFFFFFF; // Белый по умолчанию
-            }
-            
-            rootView.setBackgroundColor(backgroundColor);
-        }
-    }
-    
-    /**
-     * Возвращает цвет фона по имени
-     */
-    private int getBackgroundColor(String backgroundName) {
-        switch (backgroundName) {
-            case "Синий фон":
-                return 0xFF2196F3; // Синий
-            case "Звездный фон":
-                return 0xFF0a0e27; // Темно-синий для звездного фона (fallback)
-            case "Красный фон":
-                return 0xFFF44336; // Красный
-            case "Фиолетовый фон":
-                return 0xFF9C27B0; // Фиолетовый
-            default:
-                return 0xFFFFFFFF; // Белый по умолчанию
-        }
-    }
 }
 
