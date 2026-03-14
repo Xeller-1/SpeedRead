@@ -73,10 +73,6 @@ public class ReadingActivity extends AppCompatActivity {
     private View characterTrack;
     private Handler speechHandler = new Handler(Looper.getMainLooper());
     private Runnable speechTimeoutRunnable;
-    private long lastRecognitionRestartMs = 0L;
-    private long listeningCycleStartMs = 0L;
-    private long lastPartialResultMs = 0L;
-    private boolean heardSpeechInCycle = false;
     
     // Статистика чтения
     private long readingStartTime = 0;
@@ -255,7 +251,6 @@ public class ReadingActivity extends AppCompatActivity {
                     public void onBeginningOfSpeech() {
                         Log.d("ReadingActivity", "Начало речи");
                         isSpeaking = true;
-                        heardSpeechInCycle = true;
                         if (readingStartTime == 0) {
                             readingStartTime = System.currentTimeMillis();
                         }
@@ -292,8 +287,7 @@ public class ReadingActivity extends AppCompatActivity {
                         stopCharacterAnimation();
                         String errorMessage = getErrorText(error);
                         Log.e("ReadingActivity", "Ошибка распознавания: " + errorMessage + " (код: " + error + ")");
-                        
-                        // ERROR_CLIENT обычно означает, что нужно пересоздать SpeechRecognizer
+
                         if (error == SpeechRecognizer.ERROR_CLIENT) {
                             Log.w("ReadingActivity", "ERROR_CLIENT - пересоздаем SpeechRecognizer");
                             if (speechRecognizer != null) {
@@ -304,71 +298,22 @@ public class ReadingActivity extends AppCompatActivity {
                                 }
                                 speechRecognizer = null;
                             }
-                            
-                            // Пересоздаем SpeechRecognizer - полностью переинициализируем
-                            speechHandler.postDelayed(() -> {
-                                if (isListening) {
-                                    try {
-                                        // Полностью переинициализируем
-                                        initializeSpeechRecognizer();
-                                        if (isListening && speechRecognizer != null) {
-                                            markListeningCycleStarted();
-                                            speechRecognizer.startListening(speechRecognizerIntent);
-                                            Log.d("ReadingActivity", "SpeechRecognizer пересоздан и запущен");
-                                        } else {
-                                            Log.e("ReadingActivity", "Не удалось пересоздать SpeechRecognizer");
-                                            runOnUiThread(() -> {
-                                                Toast.makeText(ReadingActivity.this, "Ошибка микрофона. Перезапустите приложение.", Toast.LENGTH_LONG).show();
-                                            });
-                                        }
-                                    } catch (Exception e) {
-                                        Log.e("ReadingActivity", "Ошибка пересоздания SpeechRecognizer", e);
-                                    }
-                                }
-                            }, 220);
+                            initializeSpeechRecognizer();
+                            scheduleRestartListening(450);
                             return;
                         }
-                        
-                        // Для других ошибок пытаемся перезапустить распознавание
-                        if (isListening && speechRecognizer != null) {
-                            if (error == SpeechRecognizer.ERROR_NO_MATCH || 
-                                error == SpeechRecognizer.ERROR_SPEECH_TIMEOUT) {
-                                if (shouldShowRedFeedback()) {
-                                    // Ничего не распознано после попытки чтения - красный цвет
-                                    runOnUiThread(() -> {
-                                        if (tvCurrentLine != null && currentLineIndex < lines.length) {
-                                            highlightAllWordsRed();
-                                        }
-                                    });
-                                } else {
-                                    Log.d("ReadingActivity", "Пропускаем красную подсветку: слишком ранний NO_MATCH/TIMEOUT");
+
+                        if (error == SpeechRecognizer.ERROR_NO_MATCH || error == SpeechRecognizer.ERROR_SPEECH_TIMEOUT) {
+                            runOnUiThread(() -> {
+                                if (tvCurrentLine != null && currentLineIndex < lines.length) {
+                                    highlightAllWordsRed();
                                 }
-                            }
-                            
-                            // Перезапускаем распознавание с правильной остановкой
-                            speechHandler.postDelayed(() -> {
-                                if (isListening && speechRecognizer != null) {
-                                    try {
-                                        // Сначала останавливаем, если работает
-                                        speechRecognizer.stopListening();
-                                        // Небольшая задержка перед новым запуском
-                                        speechHandler.postDelayed(() -> {
-                                            if (isListening && speechRecognizer != null) {
-                                                try {
-                                                    markListeningCycleStarted();
-                                                    speechRecognizer.startListening(speechRecognizerIntent);
-                                                    Log.d("ReadingActivity", "Перезапуск распознавания после ошибки");
-                                                } catch (Exception e) {
-                                                    Log.e("ReadingActivity", "Ошибка перезапуска распознавания", e);
-                                                }
-                                            }
-                                        }, 500);
-                                    } catch (Exception e) {
-                                        Log.e("ReadingActivity", "Ошибка остановки распознавания", e);
-                                    }
-                                }
-                            }, 1500);
+                            });
+                            scheduleRestartListening(900);
+                            return;
                         }
+
+                        scheduleRestartListening(900);
                     }
                     
                     @Override
@@ -377,59 +322,37 @@ public class ReadingActivity extends AppCompatActivity {
                         if (matches != null && !matches.isEmpty() && currentLineIndex < lines.length) {
                             String recognizedText = matches.get(0).trim();
                             String expectedText = lines[currentLineIndex].trim();
-                            
+
                             Log.d("ReadingActivity", "=== РЕЗУЛЬТАТЫ РАСПОЗНАВАНИЯ ===");
                             Log.d("ReadingActivity", "Распознано: '" + recognizedText + "'");
                             Log.d("ReadingActivity", "Ожидается: '" + expectedText + "'");
-                            
-                            // Подсвечиваем слова в зависимости от качества распознавания
+
                             int matchQuality = highlightWordsInLine(recognizedText, true);
-                            
                             Log.d("ReadingActivity", "Качество совпадения: " + matchQuality + "%");
-                            
-                            // Обновляем статистику
                             updateReadingStats(matchQuality);
-                            
+
                             if (matchQuality >= 40) {
-                                // Хорошее или среднее совпадение - переходим к следующей строке
-                                Log.d("ReadingActivity", "Переход к следующей строке (качество: " + matchQuality + "%)");
                                 speechHandler.postDelayed(() -> {
                                     if (isListening) {
                                         moveToNextLine();
                                     }
                                 }, matchQuality >= 60 ? 220 : 380);
                             } else {
-                                // Плохое совпадение - продолжаем слушать
-                                Log.d("ReadingActivity", "Плохое совпадение (" + matchQuality + "%), продолжаем слушать");
-                                if (shouldShowRedFeedback()) {
-                                    runOnUiThread(() -> {
-                                        if (tvCurrentLine != null && currentLineIndex < lines.length) {
-                                            highlightAllWordsRed();
-                                        }
-                                    });
-                                } else {
-                                    Log.d("ReadingActivity", "Пропускаем красную подсветку: пока нет признаков речи");
-                                }
-                                if (isListening && speechRecognizer != null) {
-                                    restartListeningSafely(220);
-                                }
-                            }
-                        } else {
-                            // Нет результатов - подсвечиваем все красным
-                            Log.w("ReadingActivity", "Нет результатов распознавания");
-                            if (shouldShowRedFeedback()) {
                                 runOnUiThread(() -> {
                                     if (tvCurrentLine != null && currentLineIndex < lines.length) {
                                         highlightAllWordsRed();
                                     }
                                 });
-                            } else {
-                                Log.d("ReadingActivity", "Нет результатов, но подсветку пока не красим (ранний цикл)");
+                                scheduleRestartListening(1100);
                             }
-                            // Продолжаем слушать
-                            if (isListening && speechRecognizer != null) {
-                                restartListeningSafely(220);
-                            }
+                        } else {
+                            Log.w("ReadingActivity", "Нет результатов распознавания");
+                            runOnUiThread(() -> {
+                                if (tvCurrentLine != null && currentLineIndex < lines.length) {
+                                    highlightAllWordsRed();
+                                }
+                            });
+                            scheduleRestartListening(1100);
                         }
                     }
                     
@@ -438,10 +361,6 @@ public class ReadingActivity extends AppCompatActivity {
                         ArrayList<String> matches = partialResults.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
                         if (matches != null && !matches.isEmpty() && currentLineIndex < lines.length) {
                             String partialText = matches.get(0).trim();
-                            if (!partialText.isEmpty()) {
-                                heardSpeechInCycle = true;
-                                lastPartialResultMs = System.currentTimeMillis();
-                            }
 
                             Log.d("ReadingActivity", "Частичный результат: '" + partialText + "'");
                             
@@ -794,13 +713,17 @@ public class ReadingActivity extends AppCompatActivity {
     
     private void startListening() {
         // Проверяем разрешение еще раз
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) 
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO)
                 != PackageManager.PERMISSION_GRANTED) {
             Log.e("ReadingActivity", "Нет разрешения на микрофон");
             Toast.makeText(this, "Нет разрешения на микрофон", Toast.LENGTH_SHORT).show();
             return;
         }
-        
+
+        if (!isReadingStarted) {
+            return;
+        }
+
         if (speechRecognizer == null) {
             Log.e("ReadingActivity", "SpeechRecognizer is null, reinitializing...");
             initializeSpeechRecognizer();
@@ -809,79 +732,29 @@ public class ReadingActivity extends AppCompatActivity {
                 return;
             }
         }
-        
-        if (!isListening) {
-            isListening = true;
-            Log.d("ReadingActivity", "Начинаем слушать");
-            
-            // Останавливаем предыдущее прослушивание, если оно было
-            try {
-                speechRecognizer.stopListening();
-            } catch (Exception e) {
-                Log.d("ReadingActivity", "Не удалось остановить предыдущее прослушивание (это нормально)");
-            }
-            
-            // Небольшая задержка перед запуском нового прослушивания
-            speechHandler.postDelayed(() -> {
-                if (isListening && speechRecognizer != null) {
-                    try {
-                        markListeningCycleStarted();
-                        speechRecognizer.startListening(speechRecognizerIntent);
-                        Log.d("ReadingActivity", "Распознавание запущено успешно");
-                        runOnUiThread(() -> Toast.makeText(this, "Говорите...", Toast.LENGTH_SHORT).show());
-                    } catch (Exception e) {
-                        Log.e("ReadingActivity", "Ошибка при запуске распознавания", e);
-                        runOnUiThread(() -> {
-                            Toast.makeText(this, "Ошибка запуска микрофона. Проверьте настройки Google.", Toast.LENGTH_LONG).show();
-                            isListening = false;
-                        });
-                    }
-                }
-            }, 80);
-        } else {
-            Log.w("ReadingActivity", "Уже слушаем: isListening=" + isListening);
-        }
-    }
-    
-    private void markListeningCycleStarted() {
-        listeningCycleStartMs = System.currentTimeMillis();
-        heardSpeechInCycle = false;
-    }
 
-    private boolean shouldShowRedFeedback() {
-        long now = System.currentTimeMillis();
-        boolean hasSpeechEvidence = heardSpeechInCycle || (now - lastPartialResultMs) < 1500;
-        long cycleAge = now - listeningCycleStartMs;
-
-        if (isSpeaking) {
-            return false;
+        isListening = true;
+        try {
+            speechRecognizer.cancel();
+        } catch (Exception ignored) {
         }
 
-        if (!hasSpeechEvidence && cycleAge < 1800) {
-            return false;
+        try {
+            speechRecognizer.startListening(speechRecognizerIntent);
+            Log.d("ReadingActivity", "Распознавание запущено успешно");
+        } catch (Exception e) {
+            Log.e("ReadingActivity", "Ошибка при запуске распознавания", e);
+            runOnUiThread(() -> {
+                Toast.makeText(this, "Ошибка запуска микрофона. Проверьте настройки Google.", Toast.LENGTH_LONG).show();
+                isListening = false;
+            });
         }
-
-        return true;
     }
 
-    private void restartListeningSafely(long delayMs) {
+    private void scheduleRestartListening(long delayMs) {
         speechHandler.postDelayed(() -> {
-            if (isListening && speechRecognizer != null) {
-                long now = System.currentTimeMillis();
-                if (now - lastRecognitionRestartMs < 150) {
-                    return;
-                }
-                try {
-                    speechRecognizer.cancel();
-                } catch (Exception ignored) {
-                }
-                try {
-                    markListeningCycleStarted();
-                    speechRecognizer.startListening(speechRecognizerIntent);
-                    lastRecognitionRestartMs = now;
-                } catch (Exception e) {
-                    Log.e("ReadingActivity", "Ошибка перезапуска", e);
-                }
+            if (isListening && isReadingStarted && !isSpeaking && speechRecognizer != null) {
+                startListening();
             }
         }, delayMs);
     }
@@ -901,16 +774,7 @@ public class ReadingActivity extends AppCompatActivity {
             
             // Продолжаем слушать для следующей строки
             if (isListening && speechRecognizer != null) {
-                speechHandler.postDelayed(() -> {
-                    if (isListening && speechRecognizer != null) {
-                        try {
-                            markListeningCycleStarted();
-                            speechRecognizer.startListening(speechRecognizerIntent);
-                        } catch (Exception e) {
-                            Log.e("ReadingActivity", "Ошибка перезапуска", e);
-                        }
-                    }
-                }, 180);
+                scheduleRestartListening(180);
             }
         } else {
             // Текст закончен - показываем результаты
